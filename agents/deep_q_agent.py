@@ -1,21 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from collections import deque
-
-def as_binary_array(x:int, length=None):
-    length = length if length is not None else x.bit_length
-    b = []
-    for i in range(length):
-        b.append(x & 1)
-        x = x >> 1
-    b.reverse()
-    return np.array(b)
-
-def one_hot(values, n_values:int):
-    return np.eye(n_values)[values]
-
-def flatten(x):
-    return np.reshape(x, [-1])
+from utils import flatten
 
 class DeepQAgent(object):
     def __init__(self,
@@ -75,7 +61,7 @@ class DeepQAgent(object):
    
     def pretrain(self, env, pretrain_length):
         state = flatten(env.reset())
-        for i in range(pretrain_length):
+        for _ in range(pretrain_length):
             action = env.action_space.sample()
             next_state, reward, done, _ = env.step(action)
             next_state = flatten(next_state)
@@ -182,7 +168,7 @@ def play(env, agent):
         state = env.reset()
         action = env.action_space.sample()
         env.render()
-        state, reward, done, info = env.step(action)
+        state, reward, done, _ = env.step(action)
         env.render()
         done = False
         total_reward = 0
@@ -192,7 +178,7 @@ def play(env, agent):
                 agent.state: [state],
             })
             action = np.argmax(value)
-            state, reward, done, info = env.step(action)
+            state, reward, done, _ = env.step(action)
             total_reward += reward
             print(state, action, reward)
         print(total_reward)
