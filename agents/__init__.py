@@ -1,5 +1,5 @@
-from random import Random
+from agents.random import Random
 
-all_agents = [
-    Random,
-]
+all_agents = {
+    'random': Random,
+}

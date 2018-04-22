@@ -15,17 +15,21 @@ To get set up, first follow all the instructions here: https://contest.openai.co
 
 An agent is an interface, it must define four methods:
 
- 1) `__init__(self, sess)`: This is called once before any action begins. Here
-    agent should set itself up, potentially pulling configuration and initial
-    parameters from the filesystem.
- 2) `act(self, sess, state)`: This is called once every timestep
+ 1) `__init__(self)`: This is called once before any action begins. Here
+    agent should set itself up, pulling configuration from `agents/config.py`.
+ 2) `load(self, sess, saver)`: This is called once before any action begins but after 
+    the Tensorflow session has been initialized. Here the agent can load initial
+    parameters from the filesystem from a checkpoint file specified in `agents/config.py`.
+ 3) `save(self, sess, saver)`: This can be called at any time by the training routine to
+    save the updated parameters in a checkpoint file specified at `agents/config.py`. 
+ 4) `act(self, sess, state)`: This is called once every timestep
     _before_ the action happens. It should return an action that is valid for
     the environment.
- 3) `step(self, sess, state, action, reward, next_state, done)`:
+ 5) `step(self, sess, state, action, reward, next_state, done)`:
     This method is called once every timestep _after_ the action has
     happened in the environment. This is where the agent updates itself to account
     for changes in the environment and performs any online learning.
- 4) `learn(self, sess, states, actions, rewards, next_states, episode_ends)`:
+ 6) `learn(self, sess, states, actions, rewards, next_states, episode_ends)`:
     This method is called during training by
     the trainer script. Each argument will be a numpy array of values.
 

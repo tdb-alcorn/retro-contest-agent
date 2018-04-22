@@ -1,16 +1,20 @@
-from agent import Agent
+from agents.agent import Agent
 import tensorflow as tf
 import numpy as np
-import config
+import agents.config as config
 
 
 class Random(Agent):
     def __init__(self):
-        pass
+        self.x = tf.Variable([1], dtype=tf.int32)
+        return
     
-    def load(self, sess:tf.Session):
-        pass
+    def load(self, sess:tf.Session, saver:tf.train.Saver):
+        return
     
+    def save(self, sess:tf.Session, saver:tf.train.Saver):
+        return
+
     def act(self,
         sess:tf.Session,
         state:np.array
