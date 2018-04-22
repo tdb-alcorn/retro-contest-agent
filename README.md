@@ -11,7 +11,7 @@ datasets of training data, and Git LFS links to the datasets.
 To get set up, first follow all the instructions here: https://contest.openai.com/details
 
 
-## Agents
+## Creating an agent
 
 An agent is an interface, it must define four methods:
 

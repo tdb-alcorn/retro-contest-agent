@@ -64,16 +64,19 @@ def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=Fals
 
 if __name__ == '__main__':
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description="Train an agent online against a live game.")
     parser.add_argument('agent', type=str, help='name of the agent')
-    parser.add_argument('--episodes', type=int, dest='num_episodes', default=1, help='Number of episodes to run')
-    parser.add_argument('--game', type=str, dest='game', default=default_game, help='Name of the game')
-    parser.add_argument('--level', type=str, dest='level', default=default_level, help='Name of the level')
-    parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='Enable rendering of training to video')
+    parser.add_argument('--episodes', type=int, dest='num_episodes', default=1, metavar='N', help='number of episodes to run')
+    parser.add_argument('--game', type=str, dest='game', default=default_game, help='name of the game')
+    parser.add_argument('--level', type=str, dest='level', default=default_level, help='name of the level')
+    parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='enable rendering of training to video')
 
     args = parser.parse_args()
 
     if args.agent in all_agents:
         agent_constructor = all_agents[args.agent]
         train(agent_constructor, args.num_episodes, game=args.game, state=args.level, render=args.render)
+    else:
+        sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))

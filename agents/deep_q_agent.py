@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from collections import deque
-from utils import flatten
+from agents.utils import flatten
 
 class DeepQAgent(object):
     def __init__(self,
