@@ -11,6 +11,9 @@ datasets of training data, and Git LFS links to the datasets.
 To get set up, first follow all the instructions here: https://contest.openai.com/details
 
 
+## Running an agent
+
+
 ## Creating an agent
 
 An agent is an interface, it must define four methods:
@@ -35,6 +38,9 @@ An agent is an interface, it must define four methods:
 
 Note that `sess` always refers to a Tensorflow session with global variables
 already initialized.
+
+Once you have added an agent to the `agents` directory, add it to the `all_agents` dictionary
+in `agents/__init__.py` so that it can be 
 
 
 ## Training
