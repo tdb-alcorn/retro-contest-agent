@@ -21,4 +21,4 @@ def get_levels() -> Dict[str, List[str]]:
 
 def split(arr:np.array, axis=0) -> List[np.array]:
     '''Splits a numpy array into its constituent subarrays.'''
-    return [np.squeeze(a) for a in np.split(arr, arr.shape[axis], axis=axis)]
+    return [np.reshape(a, np.shape(a)[1:]) for a in np.split(arr, arr.shape[axis], axis=axis)]
