@@ -1,5 +1,5 @@
 from agents import all_agents
-from typing import Tuple, Iterable, List
+from typing import Tuple, Iterable, List, Union, TypeVar
 import numpy as np
 from train.online import train
 import train.utils as utils
@@ -68,31 +68,39 @@ class Episode(object):
         return ep
 
 
-
 class Memory(object):
     def __init__(self):
         self.episodes: List[Episode] = list()
-        self.data = []
+        self.episode_counter = 0
+        self.agent = None
+        self.game = None
+        self.level = None
+        self.current_episode = None
         self.array_names = ['states', 'actions', 'rewards', 'next_states', 'dones']
+    
+    def set_meta(self, agent:Union[str, None]=None, game:Union[str, None]=None, level:Union[str, None]=None):
+        if agent is not None:
+            self.agent = agent
+        if game is not None:
+            self.game = game
+        if level is not None:
+            self.level = level
 
-    def
+    def begin_episode(self, initial_state:State):
+        if self.agent is None or self.game is None or self.level is None:
+            raise("You need to call set_meta before beginning an episode.")
+        self.episode_counter += 1
+        self.current_episode = Episode(self.agent, self.game, self.level, self.episode_counter, initial_state)
+        self.episodes.append(self.current_episode)
 
     def add(self, datum:Datum):
-        self.data.append(datum)
-
-    def dump(self) -> Data:
-        return zip(*self.data)
-
-    def save(self):
-        data = dict(zip(self.array_names, [np.array(d) for d in self.dump()]))
-        # TODO don't save the state twice (once as state and once as next_state)
-        np.savez_compressed('./data.npz', **data)
+        if self.current_episode is None:
+            raise Exception("You need to call begin_episode before adding data.")
+        self.current_episode.add(datum)
     
-    def load(self, file='./data.npz'):
-        loaded = np.load(file)
-        data = [utils.split(loaded[name]) for name in self.array_names]
-        self.data = zip(*data)
-
+    def save(self) -> List[str]:
+        '''Returns the list of filenames that were saved to.'''
+        return [episode.save() for episode in self.episodes]
 
 
 def generate():
@@ -107,20 +115,21 @@ def generate():
         print("Generating data from {}".format(agent_name))
         for game, levels in all_levels.items():
             for level in levels:
+                memory.set_meta(agent=agent_name, game=game, level=level)
                 train(agent_constructor, 1, game=game, state=level, memory=memory, render=False)
 
     memory.save()
 
 
 if __name__ == '__main__':
-    # generate()
-    state = np.array([0])
-    ep = Episode("agent", "game", "level", 1, state)
-    datum0: Datum = (state, np.array([0]), 1, np.array([1]), False)
-    ep.add(datum0)
-    datum1: Datum = (np.array([1]), np.array([1]), 0, np.array([0]), True)
-    ep.add(datum1)
-    print(ep.data)
-    filename = ep.save()
-    ep2 = Episode.load(filename)
-    print(ep2.data)
+    generate()
+    # state = np.array([0])
+    # ep = Episode("agent", "game", "level", 1, state)
+    # datum0: Datum = (state, np.array([0]), 1, np.array([1]), False)
+    # ep.add(datum0)
+    # datum1: Datum = (np.array([1]), np.array([1]), 0, np.array([0]), True)
+    # ep.add(datum1)
+    # print(ep.data)
+    # filename = ep.save()
+    # ep2 = Episode.load(filename)
+    # print(ep2.data)
