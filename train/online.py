@@ -3,7 +3,7 @@ from agents.agent import Agent
 from retro_contest.local import make
 from contextlib import closing
 import tensorflow as tf
-from typing import Type
+from typing import Type, Union
 
 
 default_game = 'SonicTheHedgehog-Genesis'
@@ -15,6 +15,7 @@ def train(
     num_episodes:int,
     game:str=default_game,
     state:str=default_level,
+    # memory:Union[Memory,None]=None,
     memory=None,
     render:bool=False
     ):
@@ -44,6 +45,8 @@ def train(
 def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=False):
     done = False
     state = env.reset()
+    if memory is not None:
+        memory.begin_episode(state)
     if render:
         env.render()
     while not done:
