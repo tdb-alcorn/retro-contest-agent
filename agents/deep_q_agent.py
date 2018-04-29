@@ -3,7 +3,7 @@ import numpy as np
 from collections import deque
 from agents.utils import flatten, array_as_int, as_binary_array
 from agents.agent import Agent
-from agents.config import env
+from agents.config import env, deep_q
 from functools import reduce
 
 class DeepQAgent(Agent):
@@ -13,7 +13,12 @@ class DeepQAgent(Agent):
                  decay_rate=1e-4,
                  gamma=0.99,
                  **kwargs):
-        self.net = DeepQNet(state_shape=env["state_shape"], action_shape=env["action_shape"], **kwargs)
+        self.net = DeepQNet(
+            state_shape=env["state_shape"],
+            action_shape=env["action_shape"],
+            learning_rate=deep_q["learning_rate"],
+            hidden=deep_q["num_hidden"],
+            **kwargs)
         
         self.gamma = gamma
         
