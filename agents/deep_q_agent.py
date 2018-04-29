@@ -2,50 +2,55 @@ import tensorflow as tf
 import numpy as np
 from collections import deque
 from agents.utils import flatten
+from agents.agent import Agent
 
-class DeepQAgent(object):
+class DeepQAgent(Agent):
     def __init__(self,
                  explore_start=1.0,
                  explore_stop=1e-2,
                  decay_rate=1e-4,
-                 memory_size=10000,
                  num_actions=2,
-                 batch_size=20,
                  gamma=0.99,
-                 memory_prepop=None,
                  *args,
                  **kwargs):
         self.net = DeepQNet(num_actions=num_actions, *args, **kwargs)
         
         self.num_actions = num_actions
-        self.batch_size = batch_size
         self.gamma = gamma
         
-        self.memory = Memory(memory_size)
         self.noise = DecayProcess(explore_start=explore_start, explore_stop=explore_stop, decay_rate=decay_rate)
         
         self.losses = []
         self.total_rewards = []
         self._episode_reward = 0
         
-        if memory_prepop is not None:
-            for d in memory_prepop:
-                self.memory.add(d)
-    
-    def step(self, sess, state, action, reward, next_state, done):
+    def step(self,
+        sess:tf.Session,
+        state:np.array,
+        action:np.array,
+        reward:float,
+        next_state:np.array,
+        done:bool,
+        ):
         self.noise.step()
-        self.memory.add((state, action, reward, next_state, done))
         self._episode_reward += reward
         if done:
             self.total_rewards.append(self._episode_reward)
             self._episode_reward = 0
-            if self.memory.count() > self.batch_size:
-                loss = self.learn(sess, gamma=self.gamma)
-                self.losses.append(loss)
+            # TODO make an agent wrapper AgentWithMemory
+            # if self.memory.count() > self.batch_size:
+            #     loss = self.learn(sess, gamma=self.gamma)
+            #     self.losses.append(loss)
 
-    def learn(self, sess, gamma=0.99):
-        states, actions, rewards, next_states, episode_ends = zip(*self.memory.sample(self.batch_size))
-        targets = self.net.compute_targets(sess, np.array(rewards), np.array(next_states), list(episode_ends), gamma=gamma)
+    def learn(self,
+        sess:tf.Session,
+        states:np.array,
+        actions:np.array,
+        rewards:np.array,
+        next_states:np.array,
+        episode_ends:np.array,
+        ) -> float:
+        targets = self.net.compute_targets(sess, np.array(rewards), np.array(next_states), list(episode_ends), gamma=self.gamma)
         loss = self.net.learn(sess, states, actions, targets)
         return loss
                 
@@ -59,17 +64,24 @@ class DeepQAgent(object):
             action = self.net.act(sess, state)
         return action
    
-    def pretrain(self, env, pretrain_length):
-        state = flatten(env.reset())
-        for _ in range(pretrain_length):
-            action = env.action_space.sample()
-            next_state, reward, done, _ = env.step(action)
-            next_state = flatten(next_state)
-            self.memory.add((state, action, reward, next_state, done))
-            state = next_state
-            if done:
-                state = flatten(env.reset())
+    def load(self,
+        sess:tf.Session,
+        # saver:tf.train.Saver,
+        ):
+        train_vars = tf.trainable_variables(scope=self.net.name)
+        saver = tf.train.Saver(train_vars)
+        try:
+            saver.restore(sess, "checkpoints/deep_q_agent.ckpt")
+        except tf.errors.InvalidArgumentError:
+            print(f"deep_q_agent.load: checkpoint file not found, skipping load")
 
+    def save(self,
+        sess:tf.Session,
+        # saver:tf.train.Saver,
+        ):
+        train_vars = tf.trainable_variables(scope=self.net.name)
+        saver = tf.train.Saver(train_vars)
+        saver.save(sess, "checkpoints/deep_q_agent.ckpt")
 
 class DeepQNet(object):
     def __init__(self,
@@ -79,6 +91,7 @@ class DeepQNet(object):
                  hidden=16,
                  name='DeepQNet'
                 ):
+        self.name = name
         with tf.variable_scope(name):
             self.state = tf.placeholder(tf.float32, [None, state_shape], name='state')
             self.action = tf.placeholder(tf.int32, [None], name='action')
@@ -126,23 +139,6 @@ class DeepQNet(object):
         return targets
 
     
-class Memory():
-    def __init__(self, max_size=1000):
-        self.buffer = deque(maxlen=max_size)
-    
-    def add(self, experience):
-        self.buffer.append(experience)
-    
-    def count(self):
-        return len(self.buffer)
-            
-    def sample(self, batch_size):
-        idx = np.random.choice(np.arange(len(self.buffer)), 
-                               size=batch_size, 
-                               replace=False)
-        return [self.buffer[ii] for ii in idx]
-    
-
 class DecayProcess(object):
     def __init__(self, explore_start=1.0, explore_stop=1e-2, decay_rate=1e-4):
         self.explore_start = explore_start
@@ -162,23 +158,3 @@ class DecayProcess(object):
         self.counter = 0
     
     
-def play(env, agent):
-    with tf.Session() as sess:
-        saver.restore(sess, "checkpoints/cartpole.ckpt")
-        state = env.reset()
-        action = env.action_space.sample()
-        env.render()
-        state, reward, done, _ = env.step(action)
-        env.render()
-        done = False
-        total_reward = 0
-        total_reward += reward
-        while not done:
-            value = sess.run(agent.value, feed_dict={
-                agent.state: [state],
-            })
-            action = np.argmax(value)
-            state, reward, done, _ = env.step(action)
-            total_reward += reward
-            print(state, action, reward)
-        print(total_reward)

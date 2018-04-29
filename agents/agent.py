@@ -12,14 +12,14 @@ class Agent(ABC):
     @abstractmethod
     def load(self,
         sess:tf.Session,
-        saver:tf.train.Saver,
+        # saver:tf.train.Saver,
         ):
         pass
 
     @abstractmethod
     def save(self,
         sess:tf.Session,
-        saver:tf.train.Saver,
+        # saver:tf.train.Saver,
         ):
         pass
 

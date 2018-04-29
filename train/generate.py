@@ -47,8 +47,6 @@ class Episode(object):
         idc = np.random.choice(num_data, size=batch_size, replace=False)
         return [self.data[i] for i in idc]
 
-
-
     def save(self) -> str:
         '''Returns the name of the file to which the data was saved.'''
         save_data = list(zip(*self.data))[1:] + [self.initial_state]
@@ -126,14 +124,14 @@ class Memory(object):
         self.episodes = list()
         for filename in filenames:
             try:
+                self.dirty = True
                 self.episodes.append(Episode.load(filename))
                 self.current_episode = self.episodes[-1]
-                self.dirty = True
                 self.episode_counter = len(self.episodes)
             except InvalidEpisodeNameException as e:
                 print('memory.load: Skipping episode {} because loading it threw an exception:\n\t{}'.format(filename, e))
         
-    def sample(self, batch_size=100, single_episode=False, **kwargs) -> List[Datum]:
+    def sample(self, batch_size:int=100, single_episode:bool=False, **kwargs) -> List[Datum]:
         if single_episode:
             num_episodes = len(self.episodes)
             ep = np.random.choice(num_episodes)
@@ -163,6 +161,8 @@ def generate():
     all_levels = {
         'SonicTheHedgehog2-Genesis': [
             'AquaticRuinZone.Act1',
+            'MetropolisZone.Act1',
+            'MetropolisZone.Act2',
         ],
     }
     for agent_name, agent_constructor in all_agents.items():
@@ -170,13 +170,25 @@ def generate():
         for game, levels in all_levels.items():
             for level in levels:
                 memory.set_meta(agent=agent_name, game=game, level=level)
-                train(agent_constructor, 2, game=game, state=level, memory=memory, render=False)
+                train(agent_constructor, 1, game=game, state=level, memory=memory, render=False)
 
     # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.InvalidEpisodeNameException
     # Instead we should save each episode as they are generated. Then implement memory by simply keeping
     # around a list of episode filenames. When we need to sample them we run to the right spot in disk 
     # and pull it out. ??
     memory.save()
+
+
+# def pretrain(self, env, pretrain_length):
+#     state = flatten(env.reset())
+#     for _ in range(pretrain_length):
+#         action = env.action_space.sample()
+#         next_state, reward, done, _ = env.step(action)
+#         next_state = flatten(next_state)
+#         self.memory.add((state, action, reward, next_state, done))
+#         state = next_state
+#         if done:
+#             state = flatten(env.reset())
 
 
 if __name__ == '__main__':

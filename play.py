@@ -29,17 +29,42 @@ def generate_action(n):
     action[n] = 1
     return action
 
-with closing(retro.make(game=game, state=level)) as env:
-    env.reset()
-    env.render()
-    done = False
-    while not done:
-        valid_action = False
-        while not valid_action:
-            c = sys.stdin.read(1)
-            if c in keymap:
-                valid_action = True
-        n = keymap[c]
-        action = generate_action(n)
-        _, _, done, _ = env.step(action)
+if __name__ == '__main__':
+    with closing(retro.make(game=game, state=level)) as env:
+        env.reset()
         env.render()
+        done = False
+        while not done:
+            valid_action = False
+            while not valid_action:
+                c = sys.stdin.read(1)
+                if c in keymap:
+                    valid_action = True
+            n = keymap[c]
+            action = generate_action(n)
+            _, _, done, _ = env.step(action)
+            env.render()
+
+
+
+
+# def play(env, agent):
+#     with tf.Session() as sess:
+#         saver.restore(sess, "checkpoints/cartpole.ckpt")
+#         state = env.reset()
+#         action = env.action_space.sample()
+#         env.render()
+#         state, reward, done, _ = env.step(action)
+#         env.render()
+#         done = False
+#         total_reward = 0
+#         total_reward += reward
+#         while not done:
+#             value = sess.run(agent.value, feed_dict={
+#                 agent.state: [state],
+#             })
+#             action = np.argmax(value)
+#             state, reward, done, _ = env.step(action)
+#             total_reward += reward
+#             print(state, action, reward)
+#         print(total_reward)

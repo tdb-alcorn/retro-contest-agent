@@ -9,10 +9,14 @@ class Random(Agent):
         self.x = tf.Variable([1], dtype=tf.int32)
         return
     
-    def load(self, sess:tf.Session, saver:tf.train.Saver):
+    def load(self, sess:tf.Session,
+        # saver:tf.train.Saver,
+        ):
         return
     
-    def save(self, sess:tf.Session, saver:tf.train.Saver):
+    def save(self, sess:tf.Session,
+        # saver:tf.train.Saver,
+        ):
         return
 
     def act(self,
