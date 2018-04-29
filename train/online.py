@@ -25,13 +25,10 @@ def train(
     with closing(make(game=game, state=state)) as env:
         agent = agent_constructor()
 
-        # saver = tf.train.Saver()
-        saver = None
-
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
 
-            agent.load(sess, saver)
+            agent.load(sess)
 
             log_every = max(round(num_episodes/10), 1)
             for episode in range(num_episodes):
@@ -39,7 +36,7 @@ def train(
                     print("Episode %d" % episode)
                 run_episode(sess, env, agent, memory=memory, render=render)
 
-            agent.save(sess, saver)
+            agent.save(sess)
 
 
 def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=False):

@@ -23,10 +23,10 @@ def train(
 
         log_every = max(round(num_episodes/10), 1)
         for episode in range(num_episodes):
-            if episode % log_every == 0:
-                print("Episode %d" % episode)
             batch = memory.sample(batch_size=batch_size, single_episode=False, sequential=False)
-            agent.learn(sess, *zip(*batch))
+            loss = agent.learn(sess, *zip(*batch))
+            if episode % log_every == 0:
+                print("Episode %d\tLoss: %.2f" % (episode, loss))
 
         agent.save(sess)
 
