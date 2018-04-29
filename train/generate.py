@@ -28,10 +28,26 @@ class Episode(object):
         self.level = level
         self.episode = episode
         self.initial_state = initial_state
-        self.data = list()
-
+        self.data:List[Datum] = list()
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, i:int) -> Datum:
+        return self.data[i]
+    
     def add(self, datum:Datum):
         self.data.append(datum)
+
+    def sample(self, batch_size:int=100, sequential:bool=False) -> List[Datum]:
+        num_data = len(self.data)
+        if sequential:
+            idx = np.random.choice(num_data - batch_size)
+            return self.data[idx:idx + batch_size]
+        idc = np.random.choice(num_data, size=batch_size, replace=False)
+        return [self.data[i] for i in idc]
+
+
 
     def save(self) -> str:
         '''Returns the name of the file to which the data was saved.'''
@@ -71,12 +87,13 @@ class Episode(object):
 class Memory(object):
     def __init__(self):
         self.episodes: List[Episode] = list()
-        self.episode_counter = 0
+        self.episode_counter = -1
         self.agent = None
         self.game = None
         self.level = None
         self.current_episode = None
         self.array_names = ['states', 'actions', 'rewards', 'next_states', 'dones']
+        self.dirty = True
     
     def set_meta(self, agent:Union[str, None]=None, game:Union[str, None]=None, level:Union[str, None]=None):
         if agent is not None:
@@ -92,16 +109,53 @@ class Memory(object):
         self.episode_counter += 1
         self.current_episode = Episode(self.agent, self.game, self.level, self.episode_counter, initial_state)
         self.episodes.append(self.current_episode)
+        self.dirty = True
 
     def add(self, datum:Datum):
         if self.current_episode is None:
             raise Exception("You need to call begin_episode before adding data.")
         self.current_episode.add(datum)
+        self.dirty = True
     
     def save(self) -> List[str]:
         '''Returns the list of filenames that were saved to.'''
         return [episode.save() for episode in self.episodes]
-
+    
+    def load(self, filenames:List[str]):
+        '''Loads episodes from files on disk.'''
+        self.episodes = list()
+        for filename in filenames:
+            try:
+                self.episodes.append(Episode.load(filename))
+                self.current_episode = self.episodes[-1]
+                self.dirty = True
+                self.episode_counter = len(self.episodes)
+            except InvalidEpisodeNameException as e:
+                print('memory.load: Skipping episode {} because loading it threw an exception:\n\t{}'.format(filename, e))
+        
+    def sample(self, batch_size=100, single_episode=False, **kwargs) -> List[Datum]:
+        if single_episode:
+            num_episodes = len(self.episodes)
+            ep = np.random.choice(num_episodes)
+            return self.episodes[ep].sample(batch_size=batch_size, **kwargs)
+        if self.dirty:
+            # Makes a lookup table for which episode to find a given datum in.
+            self.data_index = dict()
+            self.num_data = 0
+            for ep_idx in range(len(self.episodes)):
+                ep_num_data = len(self.episodes[ep_idx])
+                for data_idx in range(self.num_data, self.num_data + ep_num_data):
+                    self.data_index[data_idx] = (ep_idx, self.num_data)
+                self.num_data += ep_num_data
+            self.dirty = False
+        idc = np.random.choice(self.num_data, size=batch_size, replace=False)
+        batch = list()
+        for data_idx in idc:
+            ep_idx, data_idx_start = self.data_index[data_idx]
+            datum = self.episodes[ep_idx].data[data_idx - data_idx_start]
+            batch.append(datum)
+        return batch
+        
 
 def generate():
     memory = Memory()
@@ -116,20 +170,14 @@ def generate():
         for game, levels in all_levels.items():
             for level in levels:
                 memory.set_meta(agent=agent_name, game=game, level=level)
-                train(agent_constructor, 1, game=game, state=level, memory=memory, render=False)
+                train(agent_constructor, 2, game=game, state=level, memory=memory, render=False)
 
+    # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.InvalidEpisodeNameException
+    # Instead we should save each episode as they are generated. Then implement memory by simply keeping
+    # around a list of episode filenames. When we need to sample them we run to the right spot in disk 
+    # and pull it out. ??
     memory.save()
 
 
 if __name__ == '__main__':
     generate()
-    # state = np.array([0])
-    # ep = Episode("agent", "game", "level", 1, state)
-    # datum0: Datum = (state, np.array([0]), 1, np.array([1]), False)
-    # ep.add(datum0)
-    # datum1: Datum = (np.array([1]), np.array([1]), 0, np.array([0]), True)
-    # ep.add(datum1)
-    # print(ep.data)
-    # filename = ep.save()
-    # ep2 = Episode.load(filename)
-    # print(ep2.data)
