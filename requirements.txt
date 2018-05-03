@@ -1,0 +1,5 @@
+gym==0.10.5
+gym-retro==0.5.4
+numpy==1.14.3
+tensorflow==1.8.0
+-e git://github.com/tdb-alcorn/retro-contest.git@f776d649b70a77de3d09000b062e6469687511d4#egg=retro_contest_support&subdirectory=support

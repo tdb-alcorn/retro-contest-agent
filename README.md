@@ -10,6 +10,8 @@ datasets of training data, and Git LFS links to the datasets.
 
 To get set up, first follow all the instructions here: https://contest.openai.com/details
 
+Alternatively, just do `pip install -r requirements.txt` to get going quickly.
+
 
 ## Running an agent
 
