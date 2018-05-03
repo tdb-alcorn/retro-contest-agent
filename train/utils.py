@@ -3,19 +3,21 @@ from typing import Dict, List
 import numpy as np
 
 
-train_file = 'sonic-train.csv'
+train_file = 'train/sonic-train.csv'
 
 
 def get_levels() -> Dict[str, List[str]]:
     '''Returns a dictionary of {<game>: [<level>, ...], ...}'''
     import csv
 
-    levels = defaultdict(lambda:[])
+    # levels = defaultdict(lambda:[])
+    levels = list()
     with open(train_file, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         next(reader)  # skip header
         for row in reader:
-            levels[row[0]].append(row[1])
+            # levels[row[0]].append(row[1])
+            levels.append((row[0], row[1]))
     return levels
     
 
