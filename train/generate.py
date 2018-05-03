@@ -47,11 +47,14 @@ class Episode(object):
         idc = np.random.choice(num_data, size=batch_size, replace=False)
         return [self.data[i] for i in idc]
 
-    def save(self) -> str:
+    def save(self, location:str='.') -> str:
         '''Returns the name of the file to which the data was saved.'''
+        if location[-1] == '/':
+            location = location[:-1]
         save_data = list(zip(*self.data))[1:] + [self.initial_state]
         data = dict(zip(self.save_columns + ['initial_state'], [np.array(d) for d in save_data]))
-        filename = '{agent}_{game}_{level}_{episode}.npz'.format(
+        filename = '{location}/{agent}_{game}_{level}_{episode}.npz'.format(
+            location=location,
             agent=self.agent,
             game=self.game,
             level=self.level,
@@ -115,9 +118,9 @@ class Memory(object):
         self.current_episode.add(datum)
         self.dirty = True
     
-    def save(self) -> List[str]:
+    def save(self, location='.') -> List[str]:
         '''Returns the list of filenames that were saved to.'''
-        return [episode.save() for episode in self.episodes]
+        return [episode.save(location=location) for episode in self.episodes]
     
     def load(self, filenames:List[str]):
         '''Loads episodes from files on disk.'''
@@ -156,7 +159,15 @@ class Memory(object):
         
 
 def generate():
-    memory = Memory()
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(description="Generate training data.")
+    parser.add_argument('--save', type=str, dest='save_location', default='.', metavar='path', help='Location to save training data.')
+
+    args = parser.parse_args()
+
+    # memory = Memory()
     # all_levels = utils.get_levels()
     all_levels = {
         'SonicTheHedgehog2-Genesis': [
@@ -166,17 +177,19 @@ def generate():
         ],
     }
     for agent_name, agent_constructor in all_agents.items():
-        print("Generating data from {}".format(agent_name))
+        print("Generating data with agent {}".format(agent_name))
         for game, levels in all_levels.items():
             for level in levels:
+                memory = Memory()
                 memory.set_meta(agent=agent_name, game=game, level=level)
                 train(agent_constructor, 1, game=game, state=level, memory=memory, render=False)
+                memory.save(location=args.save_location)
 
     # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.InvalidEpisodeNameException
     # Instead we should save each episode as they are generated. Then implement memory by simply keeping
     # around a list of episode filenames. When we need to sample them we run to the right spot in disk 
     # and pull it out. ??
-    memory.save()
+    # memory.save()
 
 
 # def pretrain(self, env, pretrain_length):
