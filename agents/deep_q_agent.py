@@ -76,7 +76,7 @@ class DeepQAgent(Agent):
         saver = tf.train.Saver(train_vars)
         try:
             saver.restore(sess, "checkpoints/deep_q_agent.ckpt")
-        except tf.errors.InvalidArgumentError:
+        except (tf.errors.InvalidArgumentError, tf.errors.NotFoundError):
             print(f"deep_q_agent.load: checkpoint file not found, skipping load")
 
     def save(self,

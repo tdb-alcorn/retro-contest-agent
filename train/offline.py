@@ -5,32 +5,6 @@ from typing import Type, List
 import tensorflow as tf
 
 
-def train(
-    agent_constructor:Type[Agent],
-    memory:FileMemory,
-    num_episodes:int,
-    batch_size:int
-    ):
-    tf.reset_default_graph()
-    tf.logging.set_verbosity(tf.logging.WARN)
-
-    agent:Agent = agent_constructor()
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-
-        agent.load(sess)
-
-        log_every = max(round(num_episodes/10), 1)
-        for episode in range(num_episodes):
-            batch = memory.sample(batch_size=batch_size, single_episode=False, sequential=False)
-            loss = agent.learn(sess, *zip(*batch))
-            if episode % log_every == 0:
-                print("Episode %d\tLoss: %.2f" % (episode, loss))
-
-        agent.save(sess)
-
-
 class FileMemory(object):
     def __init__(self, filenames:List[str]):
         if len(filenames) == 0:
@@ -38,6 +12,9 @@ class FileMemory(object):
         self.filenames:List[str] = filenames
         self.current_file_idx:int = -1
         self.load_next()
+
+    def has_next(self):
+        return self.current_file_idx < len(self.filenames)
 
     def load_next(self):
         '''Loads next episode into memory.'''
@@ -58,9 +35,46 @@ class FileMemory(object):
             return self.take(batch_size)
         else:
             samples = self.take(batch_size - remainder)
-            self.load_next()
-            samples.extend(self.take(remainder))
+            if self.has_next():
+                self.load_next()
+                samples.extend(self.take(remainder))
             return samples
+
+def run_epoch(sess:tf.Session, memory:FileMemory, agent:Agent, batch_size:int, log_every:int, epoch:int) -> float:
+    batch = memory.sample(batch_size=batch_size)
+    loss = agent.learn(sess, *zip(*batch))
+    if epoch % log_every == 0:
+        print("Episode %d\tLoss: %.2f" % (epoch, loss))
+    return loss
+
+def train(
+    agent_constructor:Type[Agent],
+    memory:FileMemory,
+    epochs:int,
+    batch_size:int
+    ):
+    tf.reset_default_graph()
+    tf.logging.set_verbosity(tf.logging.WARN)
+
+    agent:Agent = agent_constructor()
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+
+        agent.load(sess)
+
+        log_every = max(round(epochs/10), 1)
+
+        if epochs == -1:
+            epoch = 0
+            while memory.has_next():
+                run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+                epoch += 1
+        else:
+            for epoch in range(epochs):
+                run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+
+        agent.save(sess)
 
 
 if __name__ == '__main__':
@@ -70,7 +84,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Train an agent offline against saved data.")
     parser.add_argument('agent', type=str, help='name of the agent')
-    parser.add_argument('--episodes', type=int, dest='num_episodes', default=1, metavar='N', help='number of episodes to run')
+    parser.add_argument('--epochs', type=int, dest='num_epochs', default=-1, metavar='N', help='number of epochs to run, -1 means run through all available data')
     parser.add_argument('--batch-size', type=int, dest='batch_size', default=100, metavar='M', help='number of data in each training batch')
     parser.add_argument('--data', type=str, dest='data', default='./**/*_*_*_*.npz', help='glob pattern matching all data files to be loaded in training')
 
@@ -83,6 +97,6 @@ if __name__ == '__main__':
         memory = FileMemory(filenames)
         # memory.load(filenames)
 
-        train(agent_constructor, memory, args.num_episodes, args.batch_size)
+        train(agent_constructor, memory, args.num_epochs, args.batch_size)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))

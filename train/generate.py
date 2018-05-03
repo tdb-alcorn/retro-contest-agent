@@ -74,7 +74,7 @@ class Episode(object):
         filename = match.string[idx[0]:idx[1]]
         filename = filename[:-4]  # remove .npz
         try:
-            agent, game, level, episode = filename.split('_')
+            agent, game, level, episode, *other = filename.split('_')
         except ValueError:
             raise InvalidEpisodeNameException(filename)
         loaded = np.load(path)
