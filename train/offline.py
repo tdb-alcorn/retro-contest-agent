@@ -44,7 +44,8 @@ def run_epoch(sess:tf.Session, memory:FileMemory, agent:Agent, batch_size:int, l
     batch = memory.sample(batch_size=batch_size)
     loss = agent.learn(sess, *zip(*batch))
     if epoch % log_every == 0:
-        print("Episode %d\tLoss: %.2f" % (epoch, loss))
+        print("Epoch %d\tLoss: %.2f" % (epoch, loss))
+        agent.save(sess)
     return loss
 
 def train(
@@ -65,14 +66,18 @@ def train(
 
         log_every = max(round(epochs/10), 1)
 
-        if epochs == -1:
-            epoch = 0
-            while memory.has_next():
-                run_epoch(sess, memory, agent, batch_size, log_every, epoch)
-                epoch += 1
-        else:
-            for epoch in range(epochs):
-                run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+        try:
+            if epochs == -1:
+                epoch = 0
+                while memory.has_next():
+                    run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+                    epoch += 1
+            else:
+                for epoch in range(epochs):
+                    run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+        except KeyboardInterrupt:
+            agent.save(sess)
+            raise
 
         agent.save(sess)
 
