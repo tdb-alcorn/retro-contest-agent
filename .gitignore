@@ -5,6 +5,7 @@ __pycache__
 
 # Sega playback files
 *.bk2
+*.mp4
 
 # Tensorflow checkpoints
 checkpoints

@@ -17,12 +17,13 @@ def train(
     state:str=default_level,
     # memory:Union[Memory,None]=None,
     memory=None,
-    render:bool=False
+    render:bool=False,
+    bk2dir=None,
     ):
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.WARN)
 
-    with closing(make(game=game, state=state)) as env:
+    with closing(make(game=game, state=state, bk2dir=bk2dir)) as env:
         agent = agent_constructor()
 
         with tf.Session() as sess:
@@ -72,11 +73,24 @@ if __name__ == '__main__':
     parser.add_argument('--game', type=str, dest='game', default=default_game, help='name of the game')
     parser.add_argument('--level', type=str, dest='level', default=default_level, help='name of the level')
     parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='enable rendering of training to video')
+    parser.add_argument('--bk2dir', type=str, dest='bk2dir', default=None, help='optional directory to store .bk2 gameplay files')
+    
 
     args = parser.parse_args()
 
     if args.agent in all_agents:
         agent_constructor = all_agents[args.agent]
-        train(agent_constructor, args.num_episodes, game=args.game, state=args.level, render=args.render)
+        
+        if args.bk2dir is not None:
+            import os
+            fq_bk2dir = os.path.join(os.getcwd(), args.bk2dir)
+            if not os.path.isdir(fq_bk2dir):
+                if not os.path.exists(fq_bk2dir):
+                    print("bk2 directory {} doesn't exist, creating it for you".format(fq_bk2dir))
+                    os.mkdir(fq_bk2dir)
+                else:
+                    raise FileExistsError(fq_bk2dir)
+
+        train(agent_constructor, args.num_episodes, game=args.game, state=args.level, render=args.render, bk2dir=args.bk2dir)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))
