@@ -3,6 +3,9 @@ __pycache__
 *-results
 .ipynb_checkpoints
 
+# Loss data
+*loss.csv
+
 # Sega playback files
 *.bk2
 *.mp4
