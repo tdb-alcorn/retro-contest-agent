@@ -1,24 +1,32 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import numpy as np
+import csv
 
 
 train_file = 'train/sonic-train.csv'
 
 
-def get_levels() -> Dict[str, List[str]]:
-    '''Returns a dictionary of {<game>: [<level>, ...], ...}'''
-    import csv
-
-    # levels = defaultdict(lambda:[])
+def get_levels() -> List[Tuple[str, str]]:
+    '''Returns a list of tuples like (<game>, <level>)'''
     levels = list()
     with open(train_file, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         next(reader)  # skip header
         for row in reader:
-            # levels[row[0]].append(row[1])
             levels.append((row[0], row[1]))
     return levels
+
+def get_levels_by_game() -> Dict[str, List[str]]:
+    '''Returns a dictionary of {<game>: [<level>, ...], ...}'''
+    levels = defaultdict(lambda:[])
+    with open(train_file, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        next(reader)  # skip header
+        for row in reader:
+            levels[row[0]].append(row[1])
+    return levels
+
     
 
 def split(arr:np.array, axis=0) -> List[np.array]:

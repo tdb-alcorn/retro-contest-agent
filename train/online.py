@@ -1,20 +1,18 @@
 from agents import all_agents
 from agents.agent import Agent
+from train.utils import get_levels_by_game
 from retro_contest.local import make
 from contextlib import closing
 import tensorflow as tf
+import numpy as np
 from typing import Type, Union
-
-
-default_game = 'SonicTheHedgehog-Genesis'
-default_level = 'LabyrinthZone.Act1'
 
 
 def train(
     agent_constructor:Type[Agent],
     num_episodes:int,
-    game:str=default_game,
-    state:str=default_level,
+    game:str,
+    state:str,
     # memory:Union[Memory,None]=None,
     memory=None,
     render:bool=False,
@@ -70,17 +68,28 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train an agent online against a live game.")
     parser.add_argument('agent', type=str, help='name of the agent')
     parser.add_argument('--episodes', type=int, dest='num_episodes', default=1, metavar='N', help='number of episodes to run')
-    parser.add_argument('--game', type=str, dest='game', default=default_game, help='name of the game')
-    parser.add_argument('--level', type=str, dest='level', default=default_level, help='name of the level')
+    parser.add_argument('--game', type=str, dest='game', default='', help='name of the game')
+    parser.add_argument('--level', type=str, dest='level', default='', help='name of the level')
     parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='enable rendering of training to video')
     parser.add_argument('--bk2dir', type=str, dest='bk2dir', default=None, help='optional directory to store .bk2 gameplay files')
     
-
     args = parser.parse_args()
 
     if args.agent in all_agents:
         agent_constructor = all_agents[args.agent]
-        
+
+        # Choose a random/game level if none is specified
+        if args.game == '' or args.level == '':
+            all_levels = get_levels_by_game()
+        if args.game == '':
+            games = list(all_levels.keys())
+            args.game = games[np.random.choice(len(games))]
+        if args.level == '':
+            levels = all_levels[args.game]
+            args.level = levels[np.random.choice(len(levels))]
+        print("Playing game {} on level {}".format(args.game, args.level))
+
+        # Ensure that the bk2 save directory is present
         if args.bk2dir is not None:
             import os
             fq_bk2dir = os.path.join(os.getcwd(), args.bk2dir)
@@ -91,6 +100,7 @@ if __name__ == '__main__':
                 else:
                     raise FileExistsError(fq_bk2dir)
 
-        train(agent_constructor, args.num_episodes, game=args.game, state=args.level, render=args.render, bk2dir=args.bk2dir)
+        # Run training
+        train(agent_constructor, args.num_episodes, args.game, args.level, render=args.render, bk2dir=args.bk2dir)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))
