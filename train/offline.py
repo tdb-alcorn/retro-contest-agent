@@ -1,8 +1,9 @@
 from agents.agent import Agent
 from agents import all_agents
 from train.generate import Memory, Datum, Episode
-from typing import Type, List
+from typing import Type, List, Tuple
 import tensorflow as tf
+import csv
 
 
 class FileMemory(object):
@@ -14,7 +15,7 @@ class FileMemory(object):
         self.load_next()
 
     def has_next(self):
-        return self.current_file_idx < len(self.filenames)
+        return self.current_file_idx + 1 < len(self.filenames)
 
     def load_next(self):
         '''Loads next episode into memory.'''
@@ -40,12 +41,28 @@ class FileMemory(object):
                 samples.extend(self.take(remainder))
             return samples
 
-def run_epoch(sess:tf.Session, memory:FileMemory, agent:Agent, batch_size:int, log_every:int, epoch:int) -> float:
+def write_to_csv(filename:str, header:List[str], data:List[Tuple]):
+    with open(filename, newline='') as csvfile:
+        w = csv.writer(csvfile, delimiter=', ')
+        w.writerow(header)
+        for row in data:
+            w.writerow(row)
+
+def run_epoch(
+    sess:tf.Session,
+    memory:FileMemory,
+    agent:Agent,
+    batch_size:int,
+    log_every:int,
+    epoch:int,
+    losses:List[Tuple[int, float]],
+    ) -> float:
     batch = memory.sample(batch_size=batch_size)
     loss = agent.learn(sess, *zip(*batch))
     if epoch % log_every == 0:
         print("Epoch %d\tLoss: %.2f" % (epoch, loss))
         agent.save(sess)
+    losses.append((epoch, loss))
     return loss
 
 def train(
@@ -58,6 +75,7 @@ def train(
     tf.logging.set_verbosity(tf.logging.WARN)
 
     agent:Agent = agent_constructor()
+    losses = list()
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -70,11 +88,11 @@ def train(
             if epochs == -1:
                 epoch = 0
                 while memory.has_next():
-                    run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+                    run_epoch(sess, memory, agent, batch_size, log_every, epoch, losses)
                     epoch += 1
             else:
                 for epoch in range(epochs):
-                    run_epoch(sess, memory, agent, batch_size, log_every, epoch)
+                    run_epoch(sess, memory, agent, batch_size, log_every, epochi, losses)
         except KeyboardInterrupt:
             agent.save(sess)
             raise
