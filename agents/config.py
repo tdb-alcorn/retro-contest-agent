@@ -5,5 +5,5 @@ env = {
 
 deep_q = {
     "learning_rate": 1e-5,
-    "num_hidden": 1024,
+    "num_hidden": 4096,
 }
