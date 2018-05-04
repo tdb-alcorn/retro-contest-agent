@@ -1,7 +1,7 @@
 from agents.agent import Agent
 from agents import all_agents
 from train.generate import Memory, Datum, Episode
-from typing import Type, List, Tuple
+from typing import Type, List, Tuple, Iterable, Any
 import tensorflow as tf
 import csv
 
@@ -41,9 +41,9 @@ class FileMemory(object):
                 samples.extend(self.take(remainder))
             return samples
 
-def write_to_csv(filename:str, header:List[str], data:List[Tuple]):
-    with open(filename, newline='') as csvfile:
-        w = csv.writer(csvfile, delimiter=', ')
+def write_to_csv(filename:str, header:List[str], data:Iterable[Tuple[Any]]):
+    with open(filename, 'w', newline='') as csvfile:
+        w = csv.writer(csvfile, delimiter=',')
         w.writerow(header)
         for row in data:
             w.writerow(row)
@@ -56,12 +56,14 @@ def run_epoch(
     log_every:int,
     epoch:int,
     losses:List[Tuple[int, float]],
+    save:bool=False,
     ) -> float:
     batch = memory.sample(batch_size=batch_size)
     loss = agent.learn(sess, *zip(*batch))
     if epoch % log_every == 0:
         print("Epoch %d\tLoss: %.2f" % (epoch, loss))
-        agent.save(sess)
+        if save:
+            agent.save(sess)
     losses.append((epoch, loss))
     return loss
 
@@ -69,7 +71,8 @@ def train(
     agent_constructor:Type[Agent],
     memory:FileMemory,
     epochs:int,
-    batch_size:int
+    batch_size:int,
+    loss_filename:str='',
     ):
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.WARN)
@@ -92,12 +95,16 @@ def train(
                     epoch += 1
             else:
                 for epoch in range(epochs):
-                    run_epoch(sess, memory, agent, batch_size, log_every, epochi, losses)
-        except KeyboardInterrupt:
+                    run_epoch(sess, memory, agent, batch_size, log_every, epoch, losses)
+        finally:
+            print("Saving agent... ", end='')
             agent.save(sess)
-            raise
+            print('Done.')
+            if loss_filename != '':
+                print("Writing losses to {}... ".format(loss_filename), end='')
+                write_to_csv(loss_filename, ['Epoch', 'Loss'], losses)
+                print('Done.')
 
-        agent.save(sess)
 
 
 if __name__ == '__main__':
@@ -110,6 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, dest='num_epochs', default=-1, metavar='N', help='number of epochs to run, -1 means run through all available data')
     parser.add_argument('--batch-size', type=int, dest='batch_size', default=100, metavar='M', help='number of data in each training batch')
     parser.add_argument('--data', type=str, dest='data', default='./**/*_*_*_*.npz', help='glob pattern matching all data files to be loaded in training')
+    parser.add_argument('--output', type=str, dest='loss_filename', default='', help='file in which to save training loss data')
 
     args = parser.parse_args()
 
@@ -120,6 +128,6 @@ if __name__ == '__main__':
         memory = FileMemory(filenames)
         # memory.load(filenames)
 
-        train(agent_constructor, memory, args.num_epochs, args.batch_size)
+        train(agent_constructor, memory, args.num_epochs, args.batch_size, loss_filename=args.loss_filename)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))

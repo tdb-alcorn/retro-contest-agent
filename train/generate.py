@@ -1,5 +1,5 @@
 from agents import all_agents
-from typing import Tuple, Iterable, List, Union, TypeVar
+from typing import Tuple, Iterable, List, Union, TypeVar, ClassVar, Any
 import numpy as np
 from train.online import train
 import train.utils as utils
@@ -18,9 +18,9 @@ class InvalidEpisodeNameException(Exception):
         super().__init__(msg.format(filename))
 
 class Episode(object):
-    file_regex = re.compile('[^/]+\.npz$')
-    columns = ['states', 'actions', 'rewards', 'next_states', 'dones']
-    save_columns = columns[1:]
+    file_regex: ClassVar[Any] = re.compile('[^/]+\.npz$')
+    columns: List[str]= ['states', 'actions', 'rewards', 'next_states', 'dones']
+    save_columns: List[str] = columns[1:]
 
     def __init__(self, agent:str, game:str, level:str, episode:int, initial_state:State):
         self.agent = agent
