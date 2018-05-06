@@ -4,6 +4,15 @@ env = {
 }
 
 deep_q = {
-    "learning_rate": 1e-5,
-    "num_hidden": 1024,
+    'simple': {
+        'learning_rate': 1e-5,
+        'num_hidden': 1024,
+    },
+    'conv': {
+        'learning_rate': 1e-3,
+        'layers': {
+            'hidden': [128, 64],
+        },
+        'dropout': 0.5,
+    },
 }
