@@ -9,7 +9,7 @@ deep_q = {
         'num_hidden': 1024,
     },
     'conv': {
-        'learning_rate': 1e-3,
+        'learning_rate': 1e-4,
         'layers': {
             'hidden': [128, 64],
         },
