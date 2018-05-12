@@ -1,7 +1,7 @@
 from typing import Dict, Type
 from agents.agent import Agent
 from agents.random import Random
-from agents.deep_q import DeepQAgent, SimpleDeepQNet, ConvDeepQNet
+from agents.deep_q import DeepQAgent, SimpleDeepQNet, ConvDeepQNet, ConvRecurrentDeepQNet
 
 
 all_agents: Dict[str, Agent] = {
@@ -11,6 +11,7 @@ all_agents: Dict[str, Agent] = {
     # https://github.com/python/typing/pull/557
     'simple_deep_q': DeepQAgent[SimpleDeepQNet](SimpleDeepQNet),
     'conv_deep_q': DeepQAgent[ConvDeepQNet](ConvDeepQNet),
+    'conv_recurrent_deep_q': DeepQAgent[ConvRecurrentDeepQNet](ConvRecurrentDeepQNet),
 }
 
 

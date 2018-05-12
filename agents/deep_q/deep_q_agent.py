@@ -46,6 +46,9 @@ class DeepQAgent(Agent, Generic[Net]):
         ):
         self.noise.step()
         self._episode_reward += reward
+        # online learning
+        loss = self.learn(sess, [state], [action], [reward], [next_state], [done])
+        self.losses.append(loss)
         if done:
             self.total_rewards.append(self._episode_reward)
             self._episode_reward = 0

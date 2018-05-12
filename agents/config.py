@@ -15,4 +15,11 @@ deep_q = {
         },
         'dropout': 0.5,
     },
+    'conv_recurrent': {
+        'learning_rate': 1e-4,
+        'lstm_size': 8,
+        'rnn_depth': 3,
+        'dropout': 0.5,
+        'num_frames': 4,
+    },
 }
