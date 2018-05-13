@@ -43,7 +43,7 @@ def train(
                 print('Done.')
                 if hasattr(agent, 'losses') and loss_filename != '':
                     print("Writing losses to {}... ".format(loss_filename), end='')
-                    write_to_csv(loss_filename, ['Epoch', 'Loss'], agent.losses)
+                    write_to_csv(loss_filename, ['Epoch', 'Loss'], list(zip(range(len(agent.losses)), agent.losses)))
                     print('Done.')
 
 
