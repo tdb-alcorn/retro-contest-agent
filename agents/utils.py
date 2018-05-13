@@ -88,3 +88,6 @@ def one_hot(values:Union[int, np.array], n_values:int):
 
 def flatten(x:np.array):
     return np.reshape(x, [-1])
+
+def print_shape(x):
+    print(x.name, x.get_shape().as_list())

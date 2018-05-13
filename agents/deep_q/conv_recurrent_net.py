@@ -7,9 +7,6 @@ from agents.deep_q.q_net import QNet
 from agents.config import env, deep_q
 cfg = deep_q['conv_recurrent']
 
-def print_shape(x):
-    print(x.name, x.get_shape().as_list())
-
 class ConvRecurrentDeepQNet(QNet):
     def __init__(self,
                  state_shape=env["state_shape"],
@@ -27,63 +24,43 @@ class ConvRecurrentDeepQNet(QNet):
             self.state = tf.placeholder(tf.float32, [None, self.num_frames, *state_shape], name='state')
             self.action = tf.placeholder(tf.int32, [None, self.num_frames, *action_shape], name='action')
             self.target = tf.placeholder(tf.float32, [None, self.num_frames], name='target')
-            # print_shape(self.state)
-            # print_shape(self.action)
 
             self.state_cat = tf.reshape(self.state, (-1, *state_shape))
             self.action_cat = tf.reshape(self.action, (-1, *action_shape))
             action_ints = tf.py_func(find_action(self.actions), [self.action_cat], [tf.int64])[0]
             action_one_hot_cat = tf.one_hot(action_ints, self.num_actions)
             action_one_hot = tf.reshape(action_one_hot_cat, (-1, self.num_frames, self.num_actions))
-            # print_shape(self.state_cat)
-            # print_shape(self.action_cat)
             
             # Convolutional layers
             self.conv0 = tf.layers.conv2d(self.state_cat, 16, 4, strides=4, padding='same', activation=tf.nn.relu)
             self.conv1 = tf.layers.conv2d(self.conv0, 32, 4, strides=4, padding='same', activation=tf.nn.relu)
             self.pool0 = tf.layers.max_pooling2d(self.conv1, 2, 2, padding='same')
-            # print_shape(self.pool0)
 
             # Dropout config
             self.training = tf.placeholder(tf.bool, name='training')
             self.dropout_rate = cfg['dropout']
             self.conv_drop = tf.layers.dropout(self.pool0, rate=self.dropout_rate, training=self.training)
             out_size = reduce(lambda x,y: x*y, self.pool0.get_shape().as_list()[1:])
-            # print(out_size)
             self.conv_output = tf.reshape(self.conv_drop, (-1, self.num_frames, out_size))
-            # print_shape(self.conv_output)
 
             # Recurrent layers
-            # Turns out the size of the conv output has to match the lstm_size! Duh.
             def cell(size:int):
                 inner = tf.nn.rnn_cell.BasicLSTMCell(size)
                 return tf.nn.rnn_cell.DropoutWrapper(inner, output_keep_prob=(1-self.dropout_rate))
 
             rnn_layers = [out_size] + cfg['rnn_layers']
             lstm_layers = [cell(s) for s in rnn_layers]
-            # lstm_layers = [tf.nn.rnn_cell.DropoutWrapper()]
-            # drop = tf.nn.rnn_cell.DropoutWrapper(lstm, output_keep_prob=(1-self.dropout_rate))
-            # self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell([drop] * rnn_layers)
             self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(lstm_layers)
-            # self.rnn_state_feed = tf.placeholder(tf.float32, [None, *self.rnn_cell.state_size], name='rnn_state')
             self.rnn_state = None  # initial value to be set the first time the graph is run
-            # self.batch_size = tf.placeholder(tf.int32, 1)
             self.rnn_state_feed = self.rnn_cell.zero_state(1, tf.float32)
             self.rnn_output, self.rnn_final_state = tf.nn.dynamic_rnn(self.rnn_cell, self.conv_output, initial_state=self.rnn_state_feed)
-            # print(self.rnn_output.get_shape().as_list())
-            # print_shape(self.rnn_output)
-            # print_shape(self.rnn_output[:, -1])
             rnn_output_shape = self.rnn_output.get_shape().as_list()
+
             # Output
-            # print(rnn_output_shape)
             self.rnn_output_cat = tf.reshape(self.rnn_output, (-1, *rnn_output_shape[2:]))
-            # print_shape(self.rnn_output_cat)
             self.value_cat = tf.layers.dense(self.rnn_output_cat, self.num_actions,
                                                            activation=None)
-            # print_shape(self.value_cat)
             self.value = tf.reshape(self.value_cat, (-1, self.num_frames, self.num_actions))
-            # print_shape(self.value)
-            # print_shape(action_one_hot)
 
             # reduce_sum is now performed over axis 2
             self.predicted_reward = tf.reduce_sum(tf.multiply(self.value, action_one_hot), axis=2)
@@ -113,13 +90,12 @@ class ConvRecurrentDeepQNet(QNet):
     
     def learn(self, sess, states, actions, targets):
         if targets is None:
-            targets = np.array(0) # np.zeros(self.num_frames)
+            # TODO what to put for targets here?
+            targets = np.array(0)
         self.history.append([np.squeeze(states), np.squeeze(actions), np.squeeze(targets)])
         self._ensure_rnn_state(sess)
         if len(self.history) >= self.num_frames:
             states, actions, targets = self.get_history()
-            # print(states.shape, actions.shape, targets.shape)
-            # try:
             loss, _, self.rnn_state = sess.run([self.loss, self.opt, self.rnn_final_state], feed_dict={
                 self.state: states,
                 self.target: targets,
@@ -127,10 +103,6 @@ class ConvRecurrentDeepQNet(QNet):
                 self.training: True,
                 self.rnn_state_feed: self.rnn_state,
             })
-            # except ValueError as e:
-            #     import pdb; pdb.post_mortem()
-            # import pdb; pdb.set_trace()
-            # self.rnn_state = rnn_state[0]
         else:
             loss = 0
         return loss
@@ -148,15 +120,13 @@ class ConvRecurrentDeepQNet(QNet):
         else:
             action = 0
         action = self.actions[action]
-        # TODO what to put for targets here?
-        self.history.append([state, action, np.array(0)])
+        # self.history.append([state, action, np.array(0)])
         return action
     
     def compute_targets(self, sess, rewards, next_states, episode_ends, gamma):
         if len(self.history) >= self.num_frames:
             states, *_ = self.get_history()
             # Add next_state to history of states, dropping oldest state
-            # print(states.shape, next_states.shape)
             nexts = np.concatenate([np.squeeze(states)[1:], next_states], axis=0)
             next_values = sess.run(self.value, feed_dict={
                 self.state: [nexts],
