@@ -97,3 +97,9 @@ with the agent that generated it, the episode number and the frame number.
 
 Generated data lives in the `data` directory, which should be checked in with git lfs
 only.
+
+
+## Playback movie
+
+Use `./play-movie.sh`. You will need `ffmpeg` installed, which you can get from your package manager
+e.g. `brew install ffmpeg`

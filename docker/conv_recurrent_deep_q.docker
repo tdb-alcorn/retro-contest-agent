@@ -1,0 +1,7 @@
+FROM openai/retro-agent:bare
+
+ADD ../agents/* ./agents/
+ADD ../checkpoints/*ConvRecurrentDeepQ* ./checkpoints/
+ADD ../test/* ./test/
+
+CMD ["python", "-um", "test.remote", "conv_recurrent_deep_q"]
