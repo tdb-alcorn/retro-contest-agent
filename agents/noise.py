@@ -2,10 +2,10 @@ import numpy as np
 
 
 class DecayProcess(object):
-    def __init__(self, explore_start:float=1.0, explore_stop:float=1e-2, decay_rate:float=1e-4):
+    def __init__(self, explore_start:float=1.0, explore_stop:float=1e-2, final_frame:int=1e5):
         self.explore_start = explore_start
         self.explore_stop = explore_stop
-        self.decay_rate = decay_rate
+        self.decay_rate = (np.log(explore_start) - np.log(explore_stop))/float(final_frame)
         self.explore_range = self.explore_start - self.explore_stop
         self.counter = 0
         

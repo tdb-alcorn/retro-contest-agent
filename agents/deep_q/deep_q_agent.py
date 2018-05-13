@@ -19,16 +19,12 @@ class DeepQAgent(Agent, Generic[Net]):
     
     def __call__(self,
                  *args,
-                 explore_start=1.0,
-                 explore_stop=1e-2,
-                 decay_rate=1e-4,
-                 gamma=0.99,
                  **kwargs):
         self.net:QNet = self.net_constructor(
             *args,
             **kwargs)
-        self.gamma = gamma
-        self.noise = DecayProcess(explore_start=explore_start, explore_stop=explore_stop, decay_rate=decay_rate)
+        self.gamma = deep_q['gamma']
+        self.noise = DecayProcess(explore_start=deep_q['noise']['epsilon']['start'], explore_stop=deep_q['noise']['epsilon']['end'], final_frame=deep_q['noise']['until'])
         self.checkpoint_name = "checkpoints/deep_q_agent_{}.ckpt".format(type(self.net).__name__)
         
         self.losses = []
