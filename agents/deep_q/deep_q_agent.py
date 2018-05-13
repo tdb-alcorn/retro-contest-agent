@@ -5,6 +5,7 @@ from agents.noise import DecayProcess
 from agents.agent import Agent
 from agents.config import env, deep_q
 from agents.deep_q.q_net import QNet
+from agents.utils import make_actions
 
 Net = TypeVar('Net', bound=QNet)
 
@@ -26,6 +27,8 @@ class DeepQAgent(Agent, Generic[Net]):
         self.gamma = deep_q['gamma']
         self.noise = DecayProcess(explore_start=deep_q['noise']['epsilon']['start'], explore_stop=deep_q['noise']['epsilon']['end'], final_frame=deep_q['noise']['until'])
         self.checkpoint_name = "checkpoints/deep_q_agent_{}.ckpt".format(type(self.net).__name__)
+
+        self.actions = make_actions()
         
         self.losses = []
         self.total_rewards = []
@@ -65,10 +68,11 @@ class DeepQAgent(Agent, Generic[Net]):
         loss = self.net.learn(sess, states, actions, targets)
         return loss
                 
-    def act(self, sess, state, train=False):
+    def act(self, sess, state, train=True):
         if train:
             if self.noise.sample() == 1:
-                action = np.random.randint(self.net.num_actions)
+                action_idx = np.random.randint(self.net.num_actions)
+                action = self.actions[action_idx]
             else:
                 action = self.net.act(sess, state)
         else:

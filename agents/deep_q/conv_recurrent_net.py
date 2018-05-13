@@ -72,7 +72,6 @@ class ConvRecurrentDeepQNet(QNet):
     def _ensure_rnn_state(self, sess):
         if self.rnn_state is None:
             self.rnn_state = sess.run(self.rnn_state_feed)
-            print(self.rnn_state)
     
     def get_history(self):
         h = list(zip(*self.history))

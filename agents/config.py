@@ -7,7 +7,7 @@ deep_q = {
     'gamma': 0.99,
     'noise': {
         'epsilon': {
-            'start': 1.0,
+            'start': 0.5,
             'end': 0.1,
         },
         'until': 1e5,

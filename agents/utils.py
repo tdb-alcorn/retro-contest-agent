@@ -18,7 +18,7 @@ controller_buttons = [
 
 # Add useful combinations of buttons here.
 useful_combinations = [
-    tuple(),  # no button held down
+    tuple(),  # no button held down. The first action (index 0) should always be a no-op because it is treated as the default.
     ('LEFT',),
     ('RIGHT',),
     ('LEFT', 'DOWN'),
@@ -44,7 +44,8 @@ def find_action_idx(actions:List[np.array], action:np.array) -> int:
     for i in range(len(actions)):
         if np.all(action == actions[i]):
             return i
-    raise LookupError('Action {} not found in actions {}'.format(action, actions))
+    return 0  # Return no-op by default
+    # raise LookupError('Action {} not found in actions {}'.format(action, actions))
 
 def find_action(actions:List[np.array]) -> Callable[[np.array], np.array]:
     def find_action_idx_op(b:np.array) -> np.array:
