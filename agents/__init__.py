@@ -4,7 +4,8 @@ from agents.random import Random
 from agents.deep_q import DeepQAgent, SimpleDeepQNet, ConvDeepQNet, ConvRecurrentDeepQNet
 
 
-all_agents: Dict[str, Agent] = {
+# all_agents: Dict[str, Agent] = {
+all_agents = {
     'random': Random,
     # TODO(tom) Simplify these goofy statements to just <agent>[<net>] 
     # if/when python/typing/557 merges

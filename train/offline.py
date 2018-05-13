@@ -11,8 +11,10 @@ class FileMemory(object):
     def __init__(self, filenames:List[str]):
         if len(filenames) == 0:
             raise ValueError("filenames must contain at least one filename")
-        self.filenames:List[str] = filenames
-        self.current_file_idx:int = -1
+        # self.filenames:List[str] = filenames
+        self.filenames = filenames
+        # self.current_file_idx:int = -1
+        self.current_file_idx = -1
         self.load_next()
 
     def has_next(self):
@@ -21,8 +23,10 @@ class FileMemory(object):
     def load_next(self):
         '''Loads next episode into memory.'''
         self.current_file_idx += 1
-        self.current_episode:Episode = Episode.load(self.filenames[self.current_file_idx])
-        self.current_episode_offset:int = 0
+        # self.current_episode:Episode = Episode.load(self.filenames[self.current_file_idx])
+        # self.current_episode_offset:int = 0
+        self.current_episode = Episode.load(self.filenames[self.current_file_idx])
+        self.current_episode_offset = 0
 
     def take(self, num:int) -> List[Datum]:
         start_idx = self.current_episode_offset
@@ -71,7 +75,8 @@ def train(
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.WARN)
 
-    agent:Agent = agent_constructor()
+    # agent:Agent = agent_constructor()
+    agent = agent_constructor()
     losses = list()
 
     with tf.Session() as sess:

@@ -18,9 +18,12 @@ class InvalidEpisodeNameException(Exception):
         super().__init__(msg.format(filename))
 
 class Episode(object):
-    file_regex: ClassVar[Any] = re.compile('[^/]+\.npz$')
-    columns: List[str]= ['states', 'actions', 'rewards', 'next_states', 'dones']
-    save_columns: List[str] = columns[1:]
+    # file_regex: ClassVar[Any] = re.compile('[^/]+\.npz$')
+    # columns: List[str]= ['states', 'actions', 'rewards', 'next_states', 'dones']
+    # save_columns: List[str] = columns[1:]
+    file_regex = re.compile('[^/]+\.npz$')
+    columns = ['states', 'actions', 'rewards', 'next_states', 'dones']
+    save_columns = columns[1:]
 
     def __init__(self, agent:str, game:str, level:str, episode:int, initial_state:State):
         self.agent = agent
@@ -28,7 +31,8 @@ class Episode(object):
         self.level = level
         self.episode = episode
         self.initial_state = initial_state
-        self.data:List[Datum] = list()
+        # self.data:List[Datum] = list()
+        self.data = list()
     
     def __len__(self):
         return len(self.data)
@@ -80,17 +84,21 @@ class Episode(object):
         loaded = np.load(path)
         initial_state = loaded['initial_state']
         data = [utils.split(loaded[name]) for name in cls.save_columns]
-        next_states: List[State] = data[2]
-        states: List[State] = [initial_state] + next_states[:-1]
+        # next_states: List[State] = data[2]
+        # states: List[State] = [initial_state] + next_states[:-1]
+        next_states = data[2]
+        states = [initial_state] + next_states[:-1]
         data = [states] + data
         ep = cls(agent, game, level, episode, initial_state)
-        ep.data: List[Datum] = list(zip(*data))
+        # ep.data: List[Datum] = list(zip(*data))
+        ep.data = list(zip(*data))
         return ep
 
 
 class Memory(object):
     def __init__(self):
-        self.episodes: List[Episode] = list()
+        # self.episodes: List[Episode] = list()
+        self.episodes = list()
         self.episode_counter = -1
         self.agent = None
         self.game = None

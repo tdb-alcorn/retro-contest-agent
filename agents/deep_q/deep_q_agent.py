@@ -21,7 +21,8 @@ class DeepQAgent(Agent, Generic[Net]):
     def __call__(self,
                  *args,
                  **kwargs):
-        self.net:QNet = self.net_constructor(
+        # self.net:QNet = self.net_constructor(
+        self.net = self.net_constructor(
             *args,
             **kwargs)
         self.gamma = deep_q['gamma']
