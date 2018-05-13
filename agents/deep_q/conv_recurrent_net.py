@@ -54,13 +54,17 @@ class ConvRecurrentDeepQNet(QNet):
             # print_shape(self.conv_output)
 
             # Recurrent layers
-            # lstm_size = cfg['lstm_size']
-            rnn_layers = cfg['rnn_depth']
-            # lstm = tf.nn.rnn_cell.BasicLSTMCell(lstm_size)
             # Turns out the size of the conv output has to match the lstm_size! Duh.
-            lstm = tf.nn.rnn_cell.BasicLSTMCell(out_size)
-            drop = tf.nn.rnn_cell.DropoutWrapper(lstm, output_keep_prob=(1-self.dropout_rate))
-            self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell([drop] * rnn_layers)
+            def cell(size:int):
+                inner = tf.nn.rnn_cell.BasicLSTMCell(size)
+                return tf.nn.rnn_cell.DropoutWrapper(inner, output_keep_prob=(1-self.dropout_rate))
+
+            rnn_layers = [out_size] + cfg['rnn_layers']
+            lstm_layers = [cell(s) for s in rnn_layers]
+            # lstm_layers = [tf.nn.rnn_cell.DropoutWrapper()]
+            # drop = tf.nn.rnn_cell.DropoutWrapper(lstm, output_keep_prob=(1-self.dropout_rate))
+            # self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell([drop] * rnn_layers)
+            self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(lstm_layers)
             # self.rnn_state_feed = tf.placeholder(tf.float32, [None, *self.rnn_cell.state_size], name='rnn_state')
             self.rnn_state = None  # initial value to be set the first time the graph is run
             # self.batch_size = tf.placeholder(tf.int32, 1)
@@ -91,18 +95,13 @@ class ConvRecurrentDeepQNet(QNet):
     def _ensure_rnn_state(self, sess):
         if self.rnn_state is None:
             self.rnn_state = sess.run(self.rnn_state_feed)
-        print(self.rnn_state)
+            print(self.rnn_state)
     
     def get_history(self):
         h = list(zip(*self.history))
         h = [np.array(r) for r in h]
         h = [r.reshape(1, *r.shape) for r in h]
         return h
-        # res = list()
-        # for r in h:
-        #     arr = np.array(r)
-        #     res.append(arr.reshape(1, *arr.shape))
-        # return res
 
     def get_states(self):
         states = np.array(list(zip(*self.history)))
@@ -114,11 +113,13 @@ class ConvRecurrentDeepQNet(QNet):
     
     def learn(self, sess, states, actions, targets):
         if targets is None:
-            targets = 0
+            targets = np.array(0) # np.zeros(self.num_frames)
         self.history.append([np.squeeze(states), np.squeeze(actions), np.squeeze(targets)])
         self._ensure_rnn_state(sess)
         if len(self.history) >= self.num_frames:
             states, actions, targets = self.get_history()
+            # print(states.shape, actions.shape, targets.shape)
+            # try:
             loss, _, self.rnn_state = sess.run([self.loss, self.opt, self.rnn_final_state], feed_dict={
                 self.state: states,
                 self.target: targets,
@@ -126,6 +127,10 @@ class ConvRecurrentDeepQNet(QNet):
                 self.training: True,
                 self.rnn_state_feed: self.rnn_state,
             })
+            # except ValueError as e:
+            #     import pdb; pdb.post_mortem()
+            # import pdb; pdb.set_trace()
+            # self.rnn_state = rnn_state[0]
         else:
             loss = 0
         return loss
@@ -144,7 +149,7 @@ class ConvRecurrentDeepQNet(QNet):
             action = 0
         action = self.actions[action]
         # TODO what to put for targets here?
-        self.history.append([state, action, np.zeros(self.num_actions)])
+        self.history.append([state, action, np.array(0)])
         return action
     
     def compute_targets(self, sess, rewards, next_states, episode_ends, gamma):
@@ -164,6 +169,6 @@ class ConvRecurrentDeepQNet(QNet):
                 print(next_values.shape)
                 print(len(episode_ends))
                 raise
-            targets = rewards + gamma * np.max(next_values, axis=1)
+            targets = rewards + gamma * np.max(next_values, axis=2)[:, -1]
             return targets
         return None

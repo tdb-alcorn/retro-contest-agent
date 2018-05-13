@@ -1,7 +1,8 @@
 from agents.agent import Agent
 from agents import all_agents
 from train.generate import Memory, Datum, Episode
-from typing import Type, List, Tuple, Iterable, Any
+from train.utils import write_to_csv
+from typing import Type, List, Tuple
 import tensorflow as tf
 import csv
 
@@ -40,13 +41,6 @@ class FileMemory(object):
                 self.load_next()
                 samples.extend(self.take(remainder))
             return samples
-
-def write_to_csv(filename:str, header:List[str], data:Iterable[Tuple[Any]]):
-    with open(filename, 'w', newline='') as csvfile:
-        w = csv.writer(csvfile, delimiter=',')
-        w.writerow(header)
-        for row in data:
-            w.writerow(row)
 
 def run_epoch(
     sess:tf.Session,

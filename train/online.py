@@ -1,6 +1,6 @@
 from agents import all_agents
 from agents.agent import Agent
-from train.utils import get_levels_by_game
+from train.utils import get_levels_by_game, write_to_csv
 from retro_contest.local import make
 from contextlib import closing
 import tensorflow as tf
@@ -17,6 +17,7 @@ def train(
     memory=None,
     render:bool=False,
     bk2dir=None,
+    loss_filename:str='',
     ):
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.WARN)
@@ -30,12 +31,20 @@ def train(
             agent.load(sess)
 
             log_every = max(round(num_episodes/10), 1)
-            for episode in range(num_episodes):
-                if episode % log_every == 0:
-                    print("Episode %d" % episode)
-                run_episode(sess, env, agent, memory=memory, render=render)
 
-            agent.save(sess)
+            try:
+                for episode in range(num_episodes):
+                    if episode % log_every == 0:
+                        print("Episode %d" % episode)
+                    run_episode(sess, env, agent, memory=memory, render=render)
+            finally:
+                print("Saving agent... ", end='')
+                agent.save(sess)
+                print('Done.')
+                if hasattr(agent, 'losses') and loss_filename != '':
+                    print("Writing losses to {}... ".format(loss_filename), end='')
+                    write_to_csv(loss_filename, ['Epoch', 'Loss'], agent.losses)
+                    print('Done.')
 
 
 def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=False):
@@ -72,6 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--level', type=str, dest='level', default='', help='name of the level')
     parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='enable rendering of training to video')
     parser.add_argument('--bk2dir', type=str, dest='bk2dir', default=None, help='optional directory to store .bk2 gameplay files')
+    parser.add_argument('--output', type=str, dest='loss_filename', default='', help='file in which to save training loss data')
     
     args = parser.parse_args()
 
@@ -101,6 +111,6 @@ if __name__ == '__main__':
                     raise FileExistsError(fq_bk2dir)
 
         # Run training
-        train(agent_constructor, args.num_episodes, args.game, args.level, render=args.render, bk2dir=args.bk2dir)
+        train(agent_constructor, args.num_episodes, args.game, args.level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))

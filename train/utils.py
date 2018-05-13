@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Iterable, Any
 import numpy as np
 import csv
 
@@ -27,7 +27,12 @@ def get_levels_by_game() -> Dict[str, List[str]]:
             levels[row[0]].append(row[1])
     return levels
 
-    
+def write_to_csv(filename:str, header:List[str], data:Iterable[Tuple[Any]]):
+    with open(filename, 'w', newline='') as csvfile:
+        w = csv.writer(csvfile, delimiter=',')
+        w.writerow(header)
+        for row in data:
+            w.writerow(row)
 
 def split(arr:np.array, axis=0) -> List[np.array]:
     '''Splits a numpy array into its constituent subarrays.'''
