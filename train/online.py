@@ -46,6 +46,40 @@ def train(
                     write_to_csv(loss_filename, ['Epoch', 'Loss'], list(zip(range(len(agent.losses)), agent.losses)))
                     print('Done.')
 
+def train_all(
+    agent_constructor:Type[Agent],
+    num_episodes:int,
+    bk2dir=None,
+    loss_filename:str='',
+    ):
+    tf.reset_default_graph()
+    tf.logging.set_verbosity(tf.logging.WARN)
+
+    agent = agent_constructor()
+
+    all_levels = get_levels()
+    log_every = max(round(num_episodes/10), 1)
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        agent.load(sess)
+
+        try:
+            for game, level in all_levels:
+                print("Playing game {} on level {}".format(game, level))
+                with closing(make(game=game, state=level, bk2dir=bk2dir)) as env:
+                    for episode in range(num_episodes):
+                        if episode % log_every == 0:
+                            print("Episode %d" % episode)
+                        run_episode(sess, env, agent)
+        finally:
+            print("Saving agent... ", end='')
+            agent.save(sess)
+            print('Done.')
+            if hasattr(agent, 'losses') and loss_filename != '':
+                print("Writing losses to {}... ".format(loss_filename), end='')
+                write_to_csv(loss_filename, ['Epoch', 'Loss'], list(zip(range(len(agent.losses)), agent.losses)))
+                print('Done.')
 
 def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=False):
     done = False
@@ -101,10 +135,7 @@ if __name__ == '__main__':
                     raise FileExistsError(fq_bk2dir)
 
         if args.all:
-            all_levels = get_levels()
-            for game, level in all_levels:
-                print("Playing game {} on level {}".format(game, level))
-                train(agent_constructor, args.num_episodes, game, level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
+            train_all(agent_constructor, args.num_episodes, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
         else:
             # Choose a random/game level if none is specified
             if args.game == '' or args.level == '':
