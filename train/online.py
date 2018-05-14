@@ -1,6 +1,6 @@
 from agents import all_agents
 from agents.agent import Agent
-from train.utils import get_levels_by_game, write_to_csv
+from train.utils import get_levels_by_game, write_to_csv, get_levels
 from retro_contest.local import make
 from contextlib import closing
 import tensorflow as tf
@@ -82,22 +82,12 @@ if __name__ == '__main__':
     parser.add_argument('--render', const=True, default=False, action='store_const', dest='render', help='enable rendering of training to video')
     parser.add_argument('--bk2dir', type=str, dest='bk2dir', default=None, help='optional directory to store .bk2 gameplay files')
     parser.add_argument('--output', type=str, dest='loss_filename', default='', help='file in which to save training loss data')
+    parser.add_argument('--all', default=False, action='store_const', const=True, dest='all', help='run through all games and levels in sequence. --episodes is then interpreted as the number of times to repeat each episode')
     
     args = parser.parse_args()
 
     if args.agent in all_agents:
         agent_constructor = all_agents[args.agent]
-
-        # Choose a random/game level if none is specified
-        if args.game == '' or args.level == '':
-            all_levels = get_levels_by_game()
-        if args.game == '':
-            games = list(all_levels.keys())
-            args.game = games[np.random.choice(len(games))]
-        if args.level == '':
-            levels = all_levels[args.game]
-            args.level = levels[np.random.choice(len(levels))]
-        print("Playing game {} on level {}".format(args.game, args.level))
 
         # Ensure that the bk2 save directory is present
         if args.bk2dir is not None:
@@ -110,7 +100,24 @@ if __name__ == '__main__':
                 else:
                     raise FileExistsError(fq_bk2dir)
 
-        # Run training
-        train(agent_constructor, args.num_episodes, args.game, args.level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
+        if args.all:
+            all_levels = get_levels()
+            for game, level in all_levels:
+                print("Playing game {} on level {}".format(game, level))
+                train(agent_constructor, args.num_episodes, game, level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
+        else:
+            # Choose a random/game level if none is specified
+            if args.game == '' or args.level == '':
+                all_levels = get_levels_by_game()
+            if args.game == '':
+                games = list(all_levels.keys())
+                args.game = games[np.random.choice(len(games))]
+            if args.level == '':
+                levels = all_levels[args.game]
+                args.level = levels[np.random.choice(len(levels))]
+            print("Playing game {} on level {}".format(args.game, args.level))
+
+            # Run training
+            train(agent_constructor, args.num_episodes, args.game, args.level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
     else:
         sys.stderr.write('Agent {} not found. Available agents are: {}.\n'.format(args.agent, ', '.join(all_agents.keys())))
