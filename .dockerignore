@@ -9,7 +9,7 @@ roms
 *.log
 *.csv
 *.err
-checkpoints
+checkpoints-scratch
 
 src
 *results

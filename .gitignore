@@ -13,6 +13,7 @@ results
 
 # Tensorflow checkpoints
 checkpoints
+checkpoints-scratch
 
 # Training data
 *.npz

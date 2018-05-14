@@ -89,7 +89,7 @@ class DeepQAgent(Agent, Generic[Net]):
         try:
             saver.restore(sess, self.checkpoint_name)
         except (tf.errors.InvalidArgumentError, tf.errors.NotFoundError):
-            print(f"deep_q_agent.load: checkpoint file not found, skipping load")
+            print("deep_q_agent.load: checkpoint file not found, skipping load")
 
     def save(self,
         sess:tf.Session,

@@ -5,4 +5,4 @@ ADD ./agents/ ./agents/
 ADD ./checkpoints/ ./checkpoints
 ADD ./test/ ./test/
 
-CMD ["python3.6", "-um", "test.remote", "conv_recurrent_deep_q"]
+CMD ["python", "-um", "test.remote", "conv_recurrent_deep_q"]
