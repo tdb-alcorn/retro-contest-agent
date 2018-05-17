@@ -6,20 +6,23 @@ import os
 
 
 train_file = 'train/sonic-train.csv'
+validation_file = 'train/sonic-validation.csv'
 
 
-def get_levels() -> List[Tuple[str, str]]:
+def get_levels(validation:bool=False) -> List[Tuple[str, str]]:
     '''Returns a list of tuples like (<game>, <level>)'''
+    fn = validation_file if validation else train_file
     levels = list()
-    with open(train_file, newline='') as csvfile:
+    with open(fn, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         next(reader)  # skip header
         for row in reader:
             levels.append((row[0], row[1]))
     return levels
 
-def get_levels_by_game() -> Dict[str, List[str]]:
+def get_levels_by_game(validation:bool=False) -> Dict[str, List[str]]:
     '''Returns a dictionary of {<game>: [<level>, ...], ...}'''
+    fn = validation_file if validation else train_file
     levels = defaultdict(lambda:[])
     with open(train_file, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
@@ -28,9 +31,9 @@ def get_levels_by_game() -> Dict[str, List[str]]:
             levels[row[0]].append(row[1])
     return levels
 
-def random_if_empty(game:str, level:str):
+def random_if_empty(game:str, level:str, validation:bool=False):
     if game == '' or level == '':
-        all_levels = get_levels_by_game()
+        all_levels = get_levels_by_game(validation=validation)
     if game == '':
         games = list(all_levels.keys())
         game = games[np.random.choice(len(games))]

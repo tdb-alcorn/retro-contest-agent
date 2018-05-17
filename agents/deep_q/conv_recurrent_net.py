@@ -7,6 +7,7 @@ from agents.deep_q.q_net import QNet
 from agents.config import env, deep_q
 cfg = deep_q['conv_recurrent']
 
+
 class ConvRecurrentDeepQNet(QNet):
     def __init__(self,
                  state_shape=env["state_shape"],
@@ -25,6 +26,11 @@ class ConvRecurrentDeepQNet(QNet):
             self.action = tf.placeholder(tf.int32, [None, self.num_frames, *action_shape], name='action')
             self.target = tf.placeholder(tf.float32, [None, self.num_frames], name='target')
 
+            # Dropout config
+            self.training = tf.placeholder(tf.bool, name='training')
+            self.dropout_rate = cfg['dropout']
+
+            # Reshape recurrent input
             self.state_cat = tf.reshape(self.state, (-1, *state_shape))
             self.action_cat = tf.reshape(self.action, (-1, *action_shape))
             action_ints = tf.py_func(find_action(self.actions), [self.action_cat], [tf.int64])[0]
@@ -32,16 +38,16 @@ class ConvRecurrentDeepQNet(QNet):
             action_one_hot = tf.reshape(action_one_hot_cat, (-1, self.num_frames, self.num_actions))
             
             # Convolutional layers
-            self.conv0 = tf.layers.conv2d(self.state_cat, 16, 4, strides=4, padding='same', activation=tf.nn.relu)
-            self.conv1 = tf.layers.conv2d(self.conv0, 32, 4, strides=4, padding='same', activation=tf.nn.relu)
-            self.pool0 = tf.layers.max_pooling2d(self.conv1, 2, 2, padding='same')
+            self.conv0_0 = tf.layers.conv2d(self.state_cat, 16, 4, strides=4, padding='same', activation=tf.nn.relu)
+            self.conv0_1 = tf.layers.conv2d(self.conv0_0, 32, 4, strides=4, padding='same', activation=tf.nn.relu)
+            self.pool0 = tf.layers.max_pooling2d(self.conv0_1, 2, 2, padding='same')
+            self.conv_drop0 = tf.layers.dropout(self.pool0, rate=self.dropout_rate, training=self.training)
+            self.conv_out = tf.layers.flatten(self.conv_drop0)
 
-            # Dropout config
-            self.training = tf.placeholder(tf.bool, name='training')
-            self.dropout_rate = cfg['dropout']
-            self.conv_drop = tf.layers.dropout(self.pool0, rate=self.dropout_rate, training=self.training)
-            out_size = reduce(lambda x,y: x*y, self.pool0.get_shape().as_list()[1:])
-            self.conv_output = tf.reshape(self.conv_drop, (-1, self.num_frames, out_size))
+            self.embedding = tf.layers.dense(self.conv_out, cfg['embedding'], activation=tf.nn.relu)
+
+            out_size = reduce(lambda x,y: x*y, self.embedding.get_shape().as_list()[1:])
+            self.rnn_input = tf.reshape(self.embedding, (-1, self.num_frames, out_size))
 
             # Recurrent layers
             def cell(size:int):
@@ -53,7 +59,7 @@ class ConvRecurrentDeepQNet(QNet):
             self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(lstm_layers)
             self.rnn_state = None  # initial value to be set the first time the graph is run
             self.rnn_state_feed = self.rnn_cell.zero_state(1, tf.float32)
-            self.rnn_output, self.rnn_final_state = tf.nn.dynamic_rnn(self.rnn_cell, self.conv_output, initial_state=self.rnn_state_feed)
+            self.rnn_output, self.rnn_final_state = tf.nn.dynamic_rnn(self.rnn_cell, self.rnn_input, initial_state=self.rnn_state_feed)
             rnn_output_shape = self.rnn_output.get_shape().as_list()
 
             # Output

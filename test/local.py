@@ -26,16 +26,17 @@ def main(
             state = env.reset()
             if render:
                 env.render()
-            while not done:
-                action = agent.act(sess, state, False)
-                next_state, reward, done, _ = env.step(action)
-                total_reward += reward
-                if render:
-                    env.render()
-                agent.step(sess, state, action, reward, next_state, done)
-                state = next_state
-                if done:
-                    print('Episode complete. Total reward: {}'.format(total_reward))
+            try:
+                while not done:
+                    action = agent.act(sess, state, False)
+                    next_state, reward, done, _ = env.step(action)
+                    total_reward += reward
+                    if render:
+                        env.render()
+                    agent.step(sess, state, action, reward, next_state, done)
+                    state = next_state
+            finally:
+                print('Total reward: {}'.format(total_reward))
 
 
 if __name__ == '__main__':
@@ -59,7 +60,7 @@ if __name__ == '__main__':
             ensure_directory_exists(args.bk2dir)
 
         # Choose a random/game level if none is specified
-        game, level = random_if_empty(args.game, args.level)
+        game, level = random_if_empty(args.game, args.level, validation=True)
         print("Playing game {} on level {}".format(game, level))
 
         main(agent_constructor, game, level, args.render, args.bk2dir)

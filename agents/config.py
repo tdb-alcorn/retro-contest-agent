@@ -9,9 +9,9 @@ deep_q = {
         'epsilon': {
             'start': 0.5,
             'end': 0.1,
+            'test': 0.1,
         },
         'until': 1e5,
-        'test': 0.1,
     },
     'simple': {
         'learning_rate': 1e-5,
@@ -26,9 +26,9 @@ deep_q = {
     },
     'conv_recurrent': {
         'learning_rate': 2.5e-4,
-        'rnn_layers': [256, 64],
-        # 'rnn_depth': 3,
+        'embedding': 128,
+        'rnn_layers': [64, 32, 16],
         'dropout': 0.5,
-        'num_frames': 4,
+        'num_frames': 10,
     },
 }

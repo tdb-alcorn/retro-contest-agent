@@ -74,7 +74,7 @@ class DeepQAgent(Agent, Generic[Net]):
         if train:
             random_action = self.noise.sample() == 1
         else:
-            random_action = np.random.random() < deep_q['noise']['test']
+            random_action = np.random.random() < deep_q['noise']['epsilon']['test']
         if random_action:
             action_idx = np.random.randint(self.net.num_actions)
             action = self.actions[action_idx]
