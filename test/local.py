@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
         # Choose a random/game level if none is specified
         game, level = random_if_empty(args.game, args.level)
-        print("Playing game {} on level {}".format(args.game, args.level))
+        print("Playing game {} on level {}".format(game, level))
 
         main(agent_constructor, game, level, args.render, args.bk2dir)
     else:

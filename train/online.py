@@ -132,7 +132,7 @@ if __name__ == '__main__':
         else:
             # Choose a random/game level if none is specified
             game, level = random_if_empty(args.game, args.level)
-            print("Playing game {} on level {}".format(args.game, args.level))
+            print("Playing game {} on level {}".format(game, level))
 
             # Run training
             train(agent_constructor, args.num_episodes, game, level, render=args.render, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
