@@ -11,6 +11,7 @@ deep_q = {
             'end': 0.1,
         },
         'until': 1e5,
+        'test': 0.1,
     },
     'simple': {
         'learning_rate': 1e-5,

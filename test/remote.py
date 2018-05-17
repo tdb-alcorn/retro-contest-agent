@@ -21,7 +21,7 @@ def main(agent_constructor:Type[Agent]):
         print('starting episode')
         state = env.reset()
         while True:
-            action = agent.act(sess, state)
+            action = agent.act(sess, state, False)
             next_state, reward, done, _ = env.step(action)
             agent.step(sess, state, action, reward, next_state, done)
             state = next_state
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(description="Run an agent for evaluation.")
+    parser = argparse.ArgumentParser(description="Run an agent for evaluation against a remote environment.")
     parser.add_argument('agent', type=str, help='name of the agent')
 
     args = parser.parse_args()

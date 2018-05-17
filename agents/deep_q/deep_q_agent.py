@@ -69,13 +69,15 @@ class DeepQAgent(Agent, Generic[Net]):
         loss = self.net.learn(sess, states, actions, targets)
         return loss
                 
-    def act(self, sess, state, train=True):
+    def act(self, sess, state, train:bool):
+        random_action = False
         if train:
-            if self.noise.sample() == 1:
-                action_idx = np.random.randint(self.net.num_actions)
-                action = self.actions[action_idx]
-            else:
-                action = self.net.act(sess, state)
+            random_action = self.noise.sample() == 1
+        else:
+            random_action = np.random.random() < deep_q['noise']['test']
+        if random_action:
+            action_idx = np.random.randint(self.net.num_actions)
+            action = self.actions[action_idx]
         else:
             action = self.net.act(sess, state)
         return action

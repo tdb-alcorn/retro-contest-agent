@@ -21,7 +21,8 @@ class Random(Agent):
 
     def act(self,
         sess:tf.Session,
-        state:np.array
+        state:np.array,
+        train:bool,
         ) -> np.array:
         r = np.random.random(size=config.env["action_shape"])
         on = np.ones(config.env["action_shape"])

@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Iterable, Any
 import numpy as np
 import csv
+import os
 
 
 train_file = 'train/sonic-train.csv'
@@ -26,6 +27,26 @@ def get_levels_by_game() -> Dict[str, List[str]]:
         for row in reader:
             levels[row[0]].append(row[1])
     return levels
+
+def random_if_empty(game:str, level:str):
+    if game == '' or level == '':
+        all_levels = get_levels_by_game()
+    if game == '':
+        games = list(all_levels.keys())
+        game = games[np.random.choice(len(games))]
+    if level == '':
+        levels = all_levels[game]
+        level = levels[np.random.choice(len(levels))]
+    return game, level
+
+def ensure_directory_exists(dirname:str):
+    fqdir = os.path.join(os.getcwd(), dirname)
+    if not os.path.isdir(fqdir):
+        if not os.path.exists(fqdir):
+            print("Directory {} doesn't exist, creating it for you...".format(fqdir))
+            os.mkdir(fqdir)
+        else:
+            raise FileExistsError(fqdir)
 
 def write_to_csv(filename:str, header:List[str], data:Iterable[Tuple[Any]]):
     with open(filename, 'w', newline='') as csvfile:

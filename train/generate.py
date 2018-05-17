@@ -204,7 +204,7 @@ def generate():
         #         train(agent_constructor, args.num_episodes, game=game, state=level, memory=memory, render=False)
         #         memory.save(location=args.save_location)
 
-    # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.InvalidEpisodeNameException
+    # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.
     # Instead we should save each episode as they are generated. Then implement memory by simply keeping
     # around a list of episode filenames. When we need to sample them we run to the right spot in disk 
     # and pull it out. ??
