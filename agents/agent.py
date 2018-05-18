@@ -26,7 +26,8 @@ class Agent(ABC):
     @abstractmethod
     def act(self,
         sess:tf.Session,
-        state:np.array
+        state:np.array,
+        train:bool,
         ) -> np.array:
         pass
     

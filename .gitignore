@@ -1,8 +1,25 @@
 __pycache__
-*.bk2
-*-results
-.ipynb_checkpoints
-checkpoints
-*.npz
 .vscode
+*-results
+results
+.ipynb_checkpoints
+
+# Loss data
+*loss.csv
+
+# Sega playback files
+*.bk2
+*.mp4
+
+# Tensorflow checkpoints
+checkpoints
+checkpoints-scratch
+
+# Training data
+*.npz
+
+# Sega roms
 roms
+
+# pip artifact
+src

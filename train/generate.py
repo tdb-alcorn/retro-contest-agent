@@ -1,5 +1,5 @@
 from agents import all_agents
-from typing import Tuple, Iterable, List, Union, TypeVar
+from typing import Tuple, Iterable, List, Union, TypeVar, ClassVar, Any
 import numpy as np
 from train.online import train
 import train.utils as utils
@@ -18,6 +18,9 @@ class InvalidEpisodeNameException(Exception):
         super().__init__(msg.format(filename))
 
 class Episode(object):
+    # file_regex: ClassVar[Any] = re.compile('[^/]+\.npz$')
+    # columns: List[str]= ['states', 'actions', 'rewards', 'next_states', 'dones']
+    # save_columns: List[str] = columns[1:]
     file_regex = re.compile('[^/]+\.npz$')
     columns = ['states', 'actions', 'rewards', 'next_states', 'dones']
     save_columns = columns[1:]
@@ -28,7 +31,8 @@ class Episode(object):
         self.level = level
         self.episode = episode
         self.initial_state = initial_state
-        self.data:List[Datum] = list()
+        # self.data:List[Datum] = list()
+        self.data = list()
     
     def __len__(self):
         return len(self.data)
@@ -47,14 +51,17 @@ class Episode(object):
         idc = np.random.choice(num_data, size=batch_size, replace=False)
         return [self.data[i] for i in idc]
 
-    def save(self, location:str='.') -> str:
+    def save(self, location:str='.', suffix:str='') -> str:
         '''Returns the name of the file to which the data was saved.'''
         if location[-1] == '/':
             location = location[:-1]
+        if suffix != '':
+            suffix = '_' + suffix
         save_data = list(zip(*self.data))[1:] + [self.initial_state]
         data = dict(zip(self.save_columns + ['initial_state'], [np.array(d) for d in save_data]))
-        filename = '{location}/{agent}_{game}_{level}_{episode}.npz'.format(
+        filename = '{location}/{agent}_{game}_{level}_{episode}{suffix}.npz'.format(
             location=location,
+            suffix=suffix,
             agent=self.agent,
             game=self.game,
             level=self.level,
@@ -71,23 +78,27 @@ class Episode(object):
         filename = match.string[idx[0]:idx[1]]
         filename = filename[:-4]  # remove .npz
         try:
-            agent, game, level, episode = filename.split('_')
+            agent, game, level, episode, *other = filename.split('_')
         except ValueError:
             raise InvalidEpisodeNameException(filename)
         loaded = np.load(path)
         initial_state = loaded['initial_state']
         data = [utils.split(loaded[name]) for name in cls.save_columns]
-        next_states: List[State] = data[2]
-        states: List[State] = [initial_state] + next_states[:-1]
+        # next_states: List[State] = data[2]
+        # states: List[State] = [initial_state] + next_states[:-1]
+        next_states = data[2]
+        states = [initial_state] + next_states[:-1]
         data = [states] + data
         ep = cls(agent, game, level, episode, initial_state)
-        ep.data: List[Datum] = list(zip(*data))
+        # ep.data: List[Datum] = list(zip(*data))
+        ep.data = list(zip(*data))
         return ep
 
 
 class Memory(object):
     def __init__(self):
-        self.episodes: List[Episode] = list()
+        # self.episodes: List[Episode] = list()
+        self.episodes = list()
         self.episode_counter = -1
         self.agent = None
         self.game = None
@@ -118,9 +129,9 @@ class Memory(object):
         self.current_episode.add(datum)
         self.dirty = True
     
-    def save(self, location='.') -> List[str]:
+    def save(self, location:str='.', suffix:str='') -> List[str]:
         '''Returns the list of filenames that were saved to.'''
-        return [episode.save(location=location) for episode in self.episodes]
+        return [episode.save(location=location, suffix=suffix) for episode in self.episodes]
     
     def load(self, filenames:List[str]):
         '''Loads episodes from files on disk.'''
@@ -163,29 +174,37 @@ def generate():
     import sys
 
     parser = argparse.ArgumentParser(description="Generate training data.")
-    parser.add_argument('--save', type=str, dest='save_location', default='.', metavar='path', help='Location to save training data.')
+    parser.add_argument('level', type=int, help='number from 0 to 46 indicating game/level combination')
+    parser.add_argument('--save', type=str, dest='save_location', default='.', metavar='path', help='location to save training data.')
+    parser.add_argument('--episodes', type=int, dest='num_episodes', default=1, metavar='N', help='number of episodes to run for each agent/game/level combination.')
+    parser.add_argument('--save-suffix', type=str, dest='save_suffix', default='', help='optional suffix to add to saved filenames.')
 
     args = parser.parse_args()
 
     # memory = Memory()
-    # all_levels = utils.get_levels()
-    all_levels = {
-        'SonicTheHedgehog2-Genesis': [
-            'AquaticRuinZone.Act1',
-            'MetropolisZone.Act1',
-            'MetropolisZone.Act2',
-        ],
-    }
+    all_levels = utils.get_levels()
+    # all_levels = {
+    #     'SonicTheHedgehog2-Genesis': [
+    #         'AquaticRuinZone.Act1',
+    #         # 'MetropolisZone.Act1',
+    #         # 'MetropolisZone.Act2',
+    #     ],
+    # }
     for agent_name, agent_constructor in all_agents.items():
-        print("Generating data with agent {}".format(agent_name))
-        for game, levels in all_levels.items():
-            for level in levels:
-                memory = Memory()
-                memory.set_meta(agent=agent_name, game=game, level=level)
-                train(agent_constructor, 1, game=game, state=level, memory=memory, render=False)
-                memory.save(location=args.save_location)
+        game, level = all_levels[args.level]
+        print("Generating data from {game}:{level} with agent {agent}".format(game=game, level=level, agent=agent_name))
+        memory = Memory()
+        memory.set_meta(agent=agent_name, game=game, level=level)
+        train(agent_constructor, args.num_episodes, game=game, state=level, memory=memory, render=False)
+        memory.save(location=args.save_location, suffix=args.save_suffix)
+        # for game, levels in all_levels.items():
+        #     memory = Memory()
+        #     for level in levels:
+        #         memory.set_meta(agent=agent_name, game=game, level=level)
+        #         train(agent_constructor, args.num_episodes, game=game, state=level, memory=memory, render=False)
+        #         memory.save(location=args.save_location)
 
-    # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.InvalidEpisodeNameException
+    # TODO We shouldn't save everything all at the end: by this time memory usage has probably outgrown RAM.
     # Instead we should save each episode as they are generated. Then implement memory by simply keeping
     # around a list of episode filenames. When we need to sample them we run to the right spot in disk 
     # and pull it out. ??

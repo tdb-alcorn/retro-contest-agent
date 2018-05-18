@@ -1,0 +1,15 @@
+__pycache__
+bk2
+scratch
+goof
+notebooks
+roms
+*.npz
+*.bk2
+*.log
+*.csv
+*.err
+checkpoints-scratch
+
+src
+*results

@@ -1,0 +1,8 @@
+FROM openai/retro-agent:tensorflow-latest
+
+ADD ./agents/ ./agents/
+# ADD ./checkpoints/*ConvRecurrentDeepQ* ./checkpoints/
+ADD ./checkpoints/ ./checkpoints
+ADD ./test/ ./test/
+
+CMD ["python", "-um", "test.remote", "conv_recurrent_deep_q"]

@@ -13,6 +13,16 @@ To get set up, first follow all the instructions here: https://contest.openai.co
 Alternatively, just do `pip install -r requirements.txt` to get going quickly.
 
 
+## Commands
+
+```
+python -m train.online <agent> --render
+```
+
+```
+python -m train.online <agent> --bk2dir bk2
+```
+
 ## Running an agent
 
 
@@ -42,7 +52,7 @@ Note that `sess` always refers to a Tensorflow session with global variables
 already initialized.
 
 Once you have added an agent to the `agents` directory, add it to the `all_agents` dictionary
-in `agents/__init__.py` so that it can be 
+in `agents/__init__.py` so that it can be run from the command line.
 
 
 ## Training
@@ -87,3 +97,9 @@ with the agent that generated it, the episode number and the frame number.
 
 Generated data lives in the `data` directory, which should be checked in with git lfs
 only.
+
+
+## Playback movie
+
+Use `./play-movie.sh`. You will need `ffmpeg` installed, which you can get from your package manager
+e.g. `brew install ffmpeg`
