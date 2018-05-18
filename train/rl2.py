@@ -17,16 +17,17 @@ def train(
     out_filename:str='',
     ):
     tf.logging.set_verbosity(tf.logging.WARN)
+    tf.reset_default_graph()
 
     total_rewards = list()
     losses = list()
 
-    for trial in range(num_trials):
-        print("Trial {}".format(trial))
-        tf.reset_default_graph()
-        agent = agent_constructor()
+    try:
+        for trial in range(num_trials):
+            print("Trial {}".format(trial))
+            tf.reset_default_graph()
+            agent = agent_constructor()
 
-        try:
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
 
@@ -44,18 +45,18 @@ def train(
                     agent.save(sess)
                     print('Done.')
                     if hasattr(agent, 'losses'):
-                        numbered_losses = list(zip(range(len(agent.losses))))
+                        numbered_losses = list(zip(range(len(agent.losses)), agent.losses))
                         losses.extend([(trial, *row) for row in numbered_losses])
-        finally:
-            if out_filename != '':
-                loss_filename = "{}_loss.csv".format(out_filename)
-                reward_filename = "{}_reward.csv".format(out_filename)
-                print("Writing losses to {}... ".format(loss_filename), end='')
-                write_to_csv(loss_filename, ['Trial', 'Frame', 'Loss'], losses)
-                print('Done.')
-                print("Writing rewards to {}... ".format(reward_filename), end='')
-                write_to_csv(reward_filename, ['Trial', 'Episode', 'Reward'], total_rewards)
-                print('Done.')
+    finally:
+        if out_filename != '':
+            loss_filename = "{}_loss.csv".format(out_filename)
+            reward_filename = "{}_reward.csv".format(out_filename)
+            print("Writing losses to {}... ".format(loss_filename), end='')
+            write_to_csv(loss_filename, ['Trial', 'Frame', 'Loss'], losses)
+            print('Done.')
+            print("Writing rewards to {}... ".format(reward_filename), end='')
+            write_to_csv(reward_filename, ['Trial', 'Episode', 'Reward'], total_rewards)
+            print('Done.')
 
 
 def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:

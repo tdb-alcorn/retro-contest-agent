@@ -6,6 +6,7 @@ results
 
 # Loss data
 *loss.csv
+*reward.csv
 
 # Sega playback files
 *.bk2
