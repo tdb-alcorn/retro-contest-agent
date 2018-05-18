@@ -103,7 +103,7 @@ if __name__ == '__main__':
             ensure_directory_exists(args.bk2dir)
         
         if args.out_filename[-4:] == '.csv':
-            args.out_filename = args.out_filename[-4:]
+            args.out_filename = args.out_filename[:-4]
 
         # Run training
         train(agent_constructor, args.num_trials, args.episodes_per_trial, render=args.render, bk2dir=args.bk2dir, out_filename=args.out_filename)
