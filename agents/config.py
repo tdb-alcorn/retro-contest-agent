@@ -29,6 +29,12 @@ deep_q = {
         'embedding': 128,
         'rnn_layers': [64, 32, 16],
         'dropout': 0.5,
-        'num_frames': 10,
+        'num_frames': 4,
+    },
+    'rl2': {
+        'learning_rate': 2.5e-4,
+        'embedding': 128,
+        'rnn_layers': [64, 32, 16],
+        'dropout': 0.5,
     },
 }
