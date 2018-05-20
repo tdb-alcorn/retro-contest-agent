@@ -65,6 +65,7 @@ class DeepQAgent(Agent, Generic[Net]):
         next_states:np.array,
         episode_ends:np.array,
         ) -> float:
+        rewards = np.array(rewards) + deep_q['reward_offset']
         targets = self.net.compute_targets(sess, np.array(rewards), np.array(next_states), list(episode_ends), self.gamma)
         loss = self.net.learn(sess, states, actions, targets)
         return loss

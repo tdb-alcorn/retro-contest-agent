@@ -5,6 +5,7 @@ env = {
 
 deep_q = {
     'gamma': 0.99,
+    'reward_offset': -0.1,
     'noise': {
         'epsilon': {
             'start': 0.4,
