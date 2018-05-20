@@ -3,9 +3,11 @@ from agents.agent import Agent
 from train.utils import write_to_csv, get_levels, random_if_empty, ensure_directory_exists
 from retro_contest.local import make
 from contextlib import closing
+from collections import deque
 import tensorflow as tf
 import numpy as np
 from typing import Type, Union
+import time
 
 
 def train(
@@ -63,6 +65,9 @@ def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
     total_reward = 0.0
     frame = 0
     done = False
+    # Framerate running average over the last 10 frames
+    frame_times = deque(list(), 10)
+    frame_times.append(time.time())
     state = env.reset()
     if render:
         env.render()
@@ -75,8 +80,10 @@ def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
         total_reward += reward
         agent.step(sess, state, action, reward, next_state, done)
         state = next_state
+        frame_times.append(time.time())
+        fps = len(frame_times)/(frame_times[-1] - frame_times[0])
         print("\033[K", end='\r')
-        print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}".format(frame, reward, total_reward), end='\r')
+        print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
         frame += 1
     print()
     return total_reward
