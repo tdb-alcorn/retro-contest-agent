@@ -78,8 +78,11 @@ class DeepQAgent(Agent, Generic[Net]):
         if random_action:
             action_idx = np.random.randint(self.net.num_actions)
             action = self.actions[action_idx]
+            # action = self.actions[2]  # RIGHT
         else:
             action = self.net.act(sess, state)
+        # print("\033[K", end='\r')
+        # print('\r' + repr(action), end='')
         return action
    
     def load(self,

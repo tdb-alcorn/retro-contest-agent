@@ -7,7 +7,7 @@ deep_q = {
     'gamma': 0.99,
     'noise': {
         'epsilon': {
-            'start': 0.5,
+            'start': 0.4,
             'end': 0.1,
             'test': 0.1,
         },
@@ -28,6 +28,14 @@ deep_q = {
         'learning_rate': 2.5e-4,
         'embedding': 128,
         'rnn_layers': [64, 32, 16],
+        'dropout': 0.5,
+        'num_frames': 4,
+    },
+    'conv_recurrent_rl2': {
+        'learning_rate': 2.5e-4,
+        'embedding': 128,
+        'rnn_layers': [64, 32, 16],
+        'rl2_layers': [16, 16, 16],
         'dropout': 0.5,
         'num_frames': 4,
     },

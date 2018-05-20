@@ -6,6 +6,7 @@ from contextlib import closing
 from collections import deque
 import tensorflow as tf
 import numpy as np
+from collections import deque
 from typing import Type, Union
 import time
 
@@ -63,6 +64,9 @@ def train(
 
 def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
     total_reward = 0.0
+    num_frames_no_progress = 500
+    progress_threshold = 10
+    reward_buffer = deque(list(), num_frames_no_progress)
     frame = 0
     done = False
     # Framerate running average over the last 10 frames
@@ -77,6 +81,7 @@ def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
         next_state, reward, done, _ = env.step(action)
         if render:
             env.render()
+        reward_buffer.append(reward)
         total_reward += reward
         agent.step(sess, state, action, reward, next_state, done)
         state = next_state
@@ -85,6 +90,8 @@ def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
         print("\033[K", end='\r')
         print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
         frame += 1
+        if frame >= num_frames_no_progress and sum(reward_buffer) < progress_threshold:
+            break
     print()
     return total_reward
 
