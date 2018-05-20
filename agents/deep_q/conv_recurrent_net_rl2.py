@@ -155,8 +155,8 @@ class ConvRecurrentRL2DeepQNet(QNet):
             action = np.argmax(np.squeeze(value))
         else:
             action = 0
-        print("\033[K", end='\r')
-        print('\r' + repr(action), end='')
+        # print("\033[K", end='\r')
+        # print('\r' + repr(action), end='')
         action = self.actions[action]
         return action
     
