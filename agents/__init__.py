@@ -5,6 +5,7 @@ from agents.deep_q.deep_q_agent import DeepQAgent
 from agents.deep_q.simple_net import SimpleDeepQNet
 from agents.deep_q.conv_net import ConvDeepQNet
 from agents.deep_q.conv_recurrent_net import ConvRecurrentDeepQNet
+from agents.deep_q.conv_recurrent_net_rl2 import ConvRecurrentRL2DeepQNet
 from agents.deep_q.rl2 import RL2
 
 
@@ -18,6 +19,7 @@ all_agents = {
     'conv_deep_q': DeepQAgent[ConvDeepQNet](ConvDeepQNet),
     'conv_recurrent_deep_q': DeepQAgent[ConvRecurrentDeepQNet](ConvRecurrentDeepQNet),
     'rl2': DeepQAgent[RL2](RL2),
+    'conv_rnn_rl2': DeepQAgent[ConvRecurrentRL2DeepQNet](ConvRecurrentRL2DeepQNet),
 }
 
 
