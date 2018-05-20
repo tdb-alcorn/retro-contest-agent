@@ -38,6 +38,44 @@ deep_q = {
         'rl2_layers': [16, 16, 16],
         'dropout': 0.5,
         'num_frames': 4,
+        'conv_layers': [
+            {
+                'type': 'conv2d',
+                'filters': 16,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 32,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'max_pool2d',
+                'pool_size': 2,
+                'strides': 2,
+                'dropout': True,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 64,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 128,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'max_pool2d',
+                'pool_size': 2,
+                'strides': 2,
+                'dropout': True,
+            },
+        ],
     },
     'rl2': {
         'learning_rate': 2.5e-4,

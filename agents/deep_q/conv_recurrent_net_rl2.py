@@ -62,11 +62,29 @@ class ConvRecurrentRL2DeepQNet(QNet):
             action_one_hot = tf.reshape(action_one_hot_cat, (-1, self.num_frames, self.num_actions))
             
             # Convolutional layers
-            self.conv0_0 = tf.layers.conv2d(self.state_cat, 16, 4, strides=4, padding='same', activation=tf.nn.relu)
-            self.conv0_1 = tf.layers.conv2d(self.conv0_0, 32, 4, strides=4, padding='same', activation=tf.nn.relu)
-            self.pool0 = tf.layers.max_pooling2d(self.conv0_1, 2, 2, padding='same')
-            self.conv_drop0 = tf.layers.dropout(self.pool0, rate=self.dropout_rate, training=self.training)
-            self.conv_out = tf.layers.flatten(self.conv_drop0)
+            self.conv_layers = [self.state_cat]
+            for i in range(1, len(cfg['conv_layers'])):
+                prev_layer = self.conv_layers[i-1]
+                layer_cfg = cfg['conv_layers'][i]
+                # TODO Make type an enum
+                if layer_cfg['type'] == 'conv2d':
+                    layer = tf.layers.conv2d(
+                        prev_layer,
+                        layer_cfg['filters'],
+                        layer_cfg['kernel_size'],
+                        strides=layer_cfg['strides'],
+                        padding='same',
+                        activation=tf.nn.relu,
+                    )
+                elif layer_cfg['type'] == 'max_pool2d':
+                    layer = tf.layers.max_pooling2d(prev_layer, layer_cfg['pool_size'], layer_cfg['strides'], padding='same')
+                
+                # Handle dropout
+                if hasattr(layer_cfg, 'dropout') and layer_cfg['dropout']:
+                    layer = tf.layers.dropout(layer, rate=self.dropout_rate, training=self.training)
+                self.conv_layers.append(layer)
+                
+            self.conv_out = tf.layers.flatten(self.conv_layers[-1])
 
             self.embedding = tf.layers.dense(self.conv_out, cfg['embedding'], activation=tf.nn.relu)
 

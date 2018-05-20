@@ -1,6 +1,8 @@
 import numpy as np
 from typing import Union, List, Callable
 
+
+# TODO Make this an enum
 controller_buttons = [
     'B',
     'A',
@@ -27,6 +29,7 @@ useful_combinations = [
     ('DOWN', 'B'),
     ('B',),
 ]
+
 
 def make_actions() -> List[np.array]:
     num_actions = len(controller_buttons)
