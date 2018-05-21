@@ -1,6 +1,7 @@
 from typing import Dict, Type
 from agents.agent import Agent
 from agents.random import Random
+from agents.supervised import SupervisedConv
 from agents.deep_q.deep_q_agent import DeepQAgent
 from agents.deep_q.simple_net import SimpleDeepQNet
 from agents.deep_q.conv_net import ConvDeepQNet
@@ -12,6 +13,7 @@ from agents.deep_q.rl2 import RL2
 # all_agents: Dict[str, Agent] = {
 all_agents = {
     'random': Random,
+    'supervised_conv': SupervisedConv,
     # TODO(tom) Simplify these goofy statements to just <agent>[<net>] 
     # if/when python/typing/557 merges
     # https://github.com/python/typing/pull/557
