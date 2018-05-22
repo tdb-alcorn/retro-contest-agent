@@ -1,35 +1,44 @@
 import tensorflow as tf
 import numpy as np
+from typing import Union
 from functools import reduce
 from agents.agent import Agent
-from agents.config import env, deep_q
-cfg = deep_q['conv_recurrent_rl2']
+from agents.config import env, supervised
+cfg = supervised['conv']
+from agents.supervised.supervised_agent import Supervised
 
 
 # This agent only implements learn, load and save. It is intended for offline learning only.
 # This particular instance implements a convolutional auto-encoder for transferring to
 # the conv rnn rl2 agent.
-# TODO: Factor out the autoencoder bits to make a general supervised training class.
-class SupervisedConv(Agent):
+class SupervisedConv(Supervised):
     def __init__(self,
+        _input: Union[tf.Tensor, None]=None,
+        training: Union[tf.Tensor, None]=None,
         state_shape=env["state_shape"],
         learning_rate=cfg['learning_rate'],
         name='SupervisedConv',
         ):
+        if _input is None:
+            _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
+        if training is None:
+            training = tf.constant(False)
         self.name = name
         self.losses = list()
         self.checkpoint_name = "checkpoints/{}.ckpt".format(name)
         with tf.variable_scope(name):
             # Inputs
-            self.input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
-            self.training = tf.placeholder(tf.bool, name='training')
+            # self.input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
+            self.input = tf.placeholder_with_default(_input, [None, *state_shape], name='input')
+            # self.training = tf.placeholder(tf.bool, name='training')
+            self.training = tf.placeholder_with_default(training, [], name='training')
             self.dropout_rate = cfg['dropout']
 
             # Convolutional layers
             self.conv_layers = [self.input]
-            for i in range(1, len(cfg['conv_layers'])):
+            for i in range(1, len(cfg['layers'])):
                 prev_layer = self.conv_layers[i-1]
-                layer_cfg = cfg['conv_layers'][i]
+                layer_cfg = cfg['layers'][i]
                 # TODO Make type an enum
                 if layer_cfg['type'] == 'conv2d':
                     layer = tf.layers.conv2d(
@@ -58,9 +67,9 @@ class SupervisedConv(Agent):
             # Deconvolutional layers
             self.deconv_layers = [tf.reshape(self.deconv_input, [-1, *conv_out_shape])]
             layer_idx = 0
-            for i in range(len(cfg['conv_layers'])-1, -1, -1):
+            for i in range(len(cfg['layers'])-1, -1, -1):
                 prev_layer = self.deconv_layers[layer_idx]
-                layer_cfg = cfg['conv_layers'][i]
+                layer_cfg = cfg['layers'][i]
                 if layer_cfg['type'] == 'conv2d':
                     layer = tf.layers.conv2d_transpose(
                         prev_layer,
@@ -107,12 +116,13 @@ class SupervisedConv(Agent):
         sess:tf.Session,
         # saver:tf.train.Saver,
         ):
-        train_vars = tf.trainable_variables(scope=self.name)
-        saver = tf.train.Saver(train_vars)
+        # train_vars = tf.trainable_variables(scope=self.name)
+        # saver = tf.train.Saver(train_vars)
+        saver = tf.train.Saver()
         try:
             saver.restore(sess, self.checkpoint_name)
         except (tf.errors.InvalidArgumentError, tf.errors.NotFoundError):
-            print("deep_q_agent.load: checkpoint file not found, skipping load")
+            print("supervised_conv.load: checkpoint file not found, skipping load")
 
     def save(self,
         sess:tf.Session,
@@ -121,22 +131,3 @@ class SupervisedConv(Agent):
         train_vars = tf.trainable_variables(scope=self.name)
         saver = tf.train.Saver(train_vars)
         saver.save(sess, self.checkpoint_name)
-
-    # Not implemented
-    def act(self,
-        sess:tf.Session,
-        state:np.array,
-        train:bool,
-        ) -> np.array:
-        pass
-
-    # Not implemented
-    def step(self,
-        sess:tf.Session,
-        state:np.array,
-        action:np.array,
-        reward:float,
-        next_state:np.array,
-        done:bool
-        ):
-        pass

@@ -3,6 +3,52 @@ env = {
     "state_shape": (224, 320, 3),
 }
 
+supervised = {
+    'conv': {
+        'learning_rate': 2.5e-4,
+        'dropout': 0.5,
+        'embedding': 128,
+        'layers': [
+            {
+                'type': 'conv2d',
+                'filters': 16,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 32,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'max_pool2d',
+                'pool_size': 2,
+                'strides': 2,
+                'dropout': True,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 64,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'conv2d',
+                'filters': 128,
+                'kernel_size': 5,
+                'strides': 2,
+            },
+            {
+                'type': 'max_pool2d',
+                'pool_size': 2,
+                'strides': 2,
+                'dropout': True,
+            },
+        ],
+    },
+}
+
 deep_q = {
     'gamma': 0.99,
     'reward_offset': -0.1,

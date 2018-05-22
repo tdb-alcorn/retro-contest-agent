@@ -90,6 +90,8 @@ class DeepQAgent(Agent, Generic[Net]):
         sess:tf.Session,
         # saver:tf.train.Saver,
         ):
+        if hasattr(self.net, 'load'):
+            self.net.load(sess)
         train_vars = tf.trainable_variables(scope=self.net.name)
         saver = tf.train.Saver(train_vars)
         try:

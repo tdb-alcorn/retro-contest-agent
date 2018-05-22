@@ -1,12 +1,13 @@
 from typing import Dict, Type
 from agents.agent import Agent
 from agents.random import Random
-from agents.supervised import SupervisedConv
+from agents.supervised.conv import SupervisedConv
 from agents.deep_q.deep_q_agent import DeepQAgent
 from agents.deep_q.simple_net import SimpleDeepQNet
 from agents.deep_q.conv_net import ConvDeepQNet
 from agents.deep_q.conv_recurrent_net import ConvRecurrentDeepQNet
 from agents.deep_q.conv_recurrent_net_rl2 import ConvRecurrentRL2DeepQNet
+from agents.deep_q.conv_recurrent_net_rl2_transfer import ConvRecurrentRL2TransferDeepQNet
 from agents.deep_q.rl2 import RL2
 
 
@@ -22,6 +23,7 @@ all_agents = {
     'conv_recurrent_deep_q': DeepQAgent[ConvRecurrentDeepQNet](ConvRecurrentDeepQNet),
     'rl2': DeepQAgent[RL2](RL2),
     'conv_rnn_rl2': DeepQAgent[ConvRecurrentRL2DeepQNet](ConvRecurrentRL2DeepQNet),
+    'conv_rnn_rl2_transfer': DeepQAgent[ConvRecurrentRL2TransferDeepQNet](ConvRecurrentRL2TransferDeepQNet),
 }
 
 
