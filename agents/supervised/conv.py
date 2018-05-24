@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from typing import Union
+from typing import Union, Tuple
 from functools import reduce
 from agents.agent import Agent
 from agents.config import env, supervised
@@ -12,26 +12,54 @@ from agents.supervised.supervised_agent import Supervised
 # This particular instance implements a convolutional auto-encoder for transferring to
 # the conv rnn rl2 agent.
 class SupervisedConv(Supervised):
+    def _checkpoint_name(self):
+        return "checkpoints/{}.ckpt".format(self.name)
+
+    def _restore_graph(self, _input:tf.Tensor, training:tf.Tensor, name:str='SupervisedConv'):
+        '''Returns input and output tensors.'''
+        checkpoint_name = self._checkpoint_name()
+        self.saver = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
+            'input': _input,
+            'training': training,
+        }, return_elements=[
+            'embedding',
+        ])
+        graph = tf.get_default_graph()
+        self.input, self.output, self.training = graph.get_collection('interface')
+
     def __init__(self,
-        _input: Union[tf.Tensor, None]=None,
-        training: Union[tf.Tensor, None]=None,
+        *args,
+        name:str='SupervisedConv',
+        component:bool=False,
+        **kwargs,
+        ):
+        self.name = name
+        self._component = component
+        self.losses = list()
+        if self._component:
+            self._restore_graph(name=name)
+        else:
+            self._build_graph(*args, name=name, **kwargs)
+
+    def _build_graph(self,
+        # _input: Union[tf.Tensor, None]=None,
+        # training: Union[tf.Tensor, None]=None,
         state_shape=env["state_shape"],
         learning_rate=cfg['learning_rate'],
-        name='SupervisedConv',
+        name:str='SupervisedConv',
         ):
-        if _input is None:
-            _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
-        if training is None:
-            training = tf.constant(False)
-        self.name = name
-        self.losses = list()
-        self.checkpoint_name = "checkpoints/{}.ckpt".format(name)
+        # if _input is None:
+        _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
+        # if training is None:
+        training = tf.constant(False)
         with tf.variable_scope(name):
             # Inputs
-            # self.input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
-            self.input = tf.placeholder_with_default(_input, [None, *state_shape], name='input')
-            # self.training = tf.placeholder(tf.bool, name='training')
-            self.training = tf.placeholder_with_default(training, [], name='training')
+            # self._input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
+            # self.input = tf.placeholder_with_default(_input, [None, *state_shape], name='input')
+            self.input = tf.reshape(tf.Variable(_input, validate_shape=False, trainable=False, name='input'), [-1, *state_shape])
+            # self._training = tf.placeholder(tf.bool, name='training')
+            # self.training = tf.placeholder_with_default(training, [], name='training')
+            self.training = tf.reshape(tf.Variable(training, validate_shape=False, trainable=False, name='training'), [])
             self.dropout_rate = cfg['dropout']
 
             # Convolutional layers
@@ -60,7 +88,7 @@ class SupervisedConv(Supervised):
             conv_out_shape = self.conv_layers[-1].get_shape().as_list()[1:]
             self.conv_out = tf.layers.flatten(self.conv_layers[-1])
 
-            self.embedding = tf.layers.dense(self.conv_out, cfg['embedding'], activation=tf.nn.relu)
+            self.embedding = tf.layers.dense(self.conv_out, cfg['embedding'], activation=tf.nn.relu, name='embedding')
 
             self.deconv_input = tf.layers.dense(self.embedding, reduce(lambda x,y:x*y, conv_out_shape), activation=tf.nn.relu)
 
@@ -97,6 +125,10 @@ class SupervisedConv(Supervised):
             self.loss = tf.reduce_mean(tf.square(self.output - self.input))
             self.opt = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
 
+            # Interface
+            for var in [self.input, self.output, self.training]:
+                tf.add_to_collection('interface', var)
+
     def learn(self,
         sess:tf.Session,
         states:np.array,
@@ -114,20 +146,21 @@ class SupervisedConv(Supervised):
 
     def load(self,
         sess:tf.Session,
-        # saver:tf.train.Saver,
         ):
-        # train_vars = tf.trainable_variables(scope=self.name)
-        # saver = tf.train.Saver(train_vars)
-        saver = tf.train.Saver()
+        checkpoint_name = self._checkpoint_name()
+        if not hasattr(self, 'saver'):
+            train_vars = tf.trainable_variables(scope=self.name)
+            self.saver = tf.train.Saver(train_vars)
         try:
-            saver.restore(sess, self.checkpoint_name)
+            self.saver.restore(sess, checkpoint_name)
         except (tf.errors.InvalidArgumentError, tf.errors.NotFoundError):
-            print("supervised_conv.load: checkpoint file not found, skipping load")
+            print("SupervisedConv.load: checkpoint file not found, skipping load")
 
     def save(self,
         sess:tf.Session,
-        # saver:tf.train.Saver,
         ):
-        train_vars = tf.trainable_variables(scope=self.name)
-        saver = tf.train.Saver(train_vars)
-        saver.save(sess, self.checkpoint_name)
+        checkpoint_name = self._checkpoint_name()
+        if not hasattr(self, 'saver'):
+            train_vars = tf.trainable_variables(scope=self.name)
+            self.saver = tf.train.Saver(train_vars)
+        self.saver.save(sess, checkpoint_name)
