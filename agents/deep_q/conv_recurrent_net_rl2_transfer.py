@@ -46,7 +46,7 @@ class ConvRecurrentRL2TransferDeepQNet(QNet):
         self.history = FrameHistory(self.num_frames)
 
         # Only call this outside the variable scope, otherwise loading will break
-        self.conv_net = SupervisedConv(component=True)
+        # self.conv_net = SupervisedConv(component=True)
 
         with tf.variable_scope(name):
             # Inputs
@@ -67,9 +67,9 @@ class ConvRecurrentRL2TransferDeepQNet(QNet):
             action_one_hot = tf.reshape(action_one_hot_cat, (-1, self.num_frames, self.num_actions))
                 
             # conv layers
-            # self.conv_net = SupervisedConv(self.state_cat, self.training)
-            tf.assign(self.conv_net.input, self.state_cat)
-            tf.assign(self.conv_net.training, self.training)
+            self.conv_net = SupervisedConv(self.state_cat, self.training, component=True)
+            # tf.assign(self.conv_net.input, self.state_cat)
+            # tf.assign(self.conv_net.training, self.training)
 
             # self.conv_out = tf.layers.flatten(self.conv_layers[-1])
 

@@ -18,40 +18,49 @@ class SupervisedConv(Supervised):
     def _restore_graph(self, _input:tf.Tensor, training:tf.Tensor, name:str='SupervisedConv'):
         '''Returns input and output tensors.'''
         checkpoint_name = self._checkpoint_name()
-        self.saver = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
+        # self.output = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
+        tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
             'input': _input,
             'training': training,
-        }, return_elements=[
-            'embedding',
-        ])
+        })
+        # }, return_elements=[
+        #     'embedding',
+        # ])
         graph = tf.get_default_graph()
-        self.input, self.output, self.training = graph.get_collection('interface')
+        self.output = graph.get_tensor_by_name('embedding')
+        # self.input, self.output, self.training = graph.get_collection('interface')
 
     def __init__(self,
+        _input:Union[tf.Tensor, None]=None,
+        training:Union[tf.Tensor, None]=None,
         *args,
         name:str='SupervisedConv',
         component:bool=False,
         **kwargs,
         ):
+        if _input is None:
+            _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
+        if training is None:
+            training = tf.constant(False)
         self.name = name
         self._component = component
         self.losses = list()
         if self._component:
-            self._restore_graph(name=name)
+            self._restore_graph(_input, training, name=name)
         else:
-            self._build_graph(*args, name=name, **kwargs)
+            self._build_graph(_input, training, *args, name=name, **kwargs)
 
     def _build_graph(self,
-        # _input: Union[tf.Tensor, None]=None,
-        # training: Union[tf.Tensor, None]=None,
+        _input: tf.Tensor,
+        training: tf.Tensor,
         state_shape=env["state_shape"],
         learning_rate=cfg['learning_rate'],
         name:str='SupervisedConv',
         ):
         # if _input is None:
-        _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
+        # _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
         # if training is None:
-        training = tf.constant(False)
+        # training = tf.constant(False)
         with tf.variable_scope(name):
             # Inputs
             # self._input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
