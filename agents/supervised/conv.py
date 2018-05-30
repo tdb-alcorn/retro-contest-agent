@@ -15,21 +15,46 @@ class SupervisedConv(Supervised):
     def _checkpoint_name(self):
         return "checkpoints/{}.ckpt".format(self.name)
 
-    def _restore_graph(self, _input:tf.Tensor, training:tf.Tensor, name:str='SupervisedConv'):
-        '''Returns input and output tensors.'''
-        checkpoint_name = self._checkpoint_name()
-        with tf.gfile.GFile('{}.meta'.format(checkpoint_name), "rb") as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(f.read())
+    def onload(self, sess:tf.Session):
+        # to be set during _restore_graph() and called during load()
+        for onload in self._onload:
+            return onload(sess)
 
-        # self.output = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
-        self.output = tf.import_graph_def(graph_def, input_map={
-            'input': _input,
-            'training': training,
-        # })
-        }, return_elements=[
-            'embedding',
-        ])
+    def _restore_graph(self, _input:tf.Tensor, training:tf.Tensor, parent_name:str, name:str='SupervisedConv'):
+        '''Returns input and output tensors.'''
+        self.parent_name = parent_name
+        checkpoint_name = self._checkpoint_name()
+        # with tf.gfile.GFile('{}.meta'.format(checkpoint_name), "rb") as f:
+        #     graph_def = tf.GraphDef()
+        #     graph_def.ParseFromString(f.read())
+
+        # self.restore_graph = tf.Graph()
+        # with self.restore_graph.as_default():
+        self.restore_saver = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), import_scope=name, input_map={
+            name + '/state': _input,
+            name + '/training': training,
+            # 'state': _input,
+            # 'training': training,
+        })
+        print(tf.get_default_graph().as_graph_def())
+        self.saver = self.restore_saver
+        # with tf.Session() as sess:
+        #     self.restore_saver.restore(sess, checkpoint_name)
+        # def onload(self, sess:tf.Session):
+            # with self.restore_graph.as_default():
+        # restore_graph_def = self.restore_graph.as_graph_def()
+        # print(restore_graph_def)
+        # with tf.variable_scope(self.name):
+        self.output, = tf.get_default_graph().get_operation_by_name('/'.join([parent_name, name, name, 'embedding', 'Relu'])).outputs
+        # self.output = tf.get_default_graph().get_tensor_by_name(name + '/embedding/Relu:0')
+        # embedding_op, = tf.import_graph_def(restore_graph_def, input_map={
+        #     name + '/state': _input,
+        #     name + '/training': training,
+        # }, return_elements=[
+        #     name + '/embedding/Relu',
+        # ])
+        # self.output, = embedding_op.outputs
+        # self._onload.append(onload)
         # graph = tf.get_default_graph()
         # self.output = graph.get_tensor_by_name('embedding')
         # self.input, self.output, self.training = graph.get_collection('interface')
@@ -40,8 +65,10 @@ class SupervisedConv(Supervised):
         *args,
         name:str='SupervisedConv',
         component:bool=False,
+        parent_name:str='',
         **kwargs,
         ):
+        self._onload = list()  # list of onload handlers that accept a tf.Session as argument
         if _input is None:
             _input = tf.zeros([1, *env["state_shape"]], dtype=tf.float32)
         if training is None:
@@ -50,7 +77,7 @@ class SupervisedConv(Supervised):
         self._component = component
         self.losses = list()
         if self._component:
-            self._restore_graph(_input, training, name=name)
+            self._restore_graph(_input, training, parent_name, name=name)
         else:
             self._build_graph(_input, training, *args, name=name, **kwargs)
 
@@ -160,12 +187,19 @@ class SupervisedConv(Supervised):
     def load(self,
         sess:tf.Session,
         ):
+        # if self._component:
+        #     return
+        # self.onload(sess)
         checkpoint_name = self._checkpoint_name()
         if not hasattr(self, 'saver'):
             train_vars = tf.trainable_variables(scope=self.name)
             self.saver = tf.train.Saver(train_vars)
         try:
-            self.saver.restore(sess, checkpoint_name)
+            if hasattr(self, 'parent_name'):
+                with tf.variable_scope(self.parent_name + '/' + self.name):
+                    self.saver.restore(sess, checkpoint_name)
+            else:
+                self.saver.restore(sess, checkpoint_name)
         except (tf.errors.InvalidArgumentError, tf.errors.NotFoundError):
             print("SupervisedConv.load: checkpoint file not found, skipping load")
 

@@ -67,7 +67,7 @@ class ConvRecurrentRL2TransferDeepQNet(QNet):
             action_one_hot = tf.reshape(action_one_hot_cat, (-1, self.num_frames, self.num_actions))
                 
             # conv layers
-            self.conv_net = SupervisedConv(self.state_cat, self.training, component=True)
+            self.conv_net = SupervisedConv(self.state_cat, self.training, component=True, parent_name=self.name)
             # tf.assign(self.conv_net.input, self.state_cat)
             # tf.assign(self.conv_net.training, self.training)
 
