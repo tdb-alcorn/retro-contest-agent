@@ -21,7 +21,7 @@ class SupervisedConv(Supervised):
         checkpoint_name = self._checkpoint_name()
         self.restore_saver = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), import_scope=name, input_map={
             # TODO Figure out name resolution
-            name + '/state': _input,
+            name + '/input': _input,
             name + '/training': training,
             # 'state': _input,
             # 'training': training,
@@ -65,7 +65,7 @@ class SupervisedConv(Supervised):
         # training = tf.constant(False)
         with tf.variable_scope(name):
             # Inputs
-            self.input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
+            self.input = tf.placeholder(tf.float32, [None, *state_shape], name='input')
             # self.input = tf.placeholder_with_default(_input, [None, *state_shape], name='input')
             # self.input = tf.reshape(tf.Variable(_input, validate_shape=False, trainable=False, name='input'), [-1, *state_shape])
             self.training = tf.placeholder(tf.bool, name='training')
@@ -135,8 +135,9 @@ class SupervisedConv(Supervised):
                 padding='same',
                 activation=None,
             )
-            self.output = (self.output_scaled + 1) * 128.0
-            self.loss = tf.reduce_mean(tf.square(self.output - self.input))
+            self.loss = tf.reduce_mean(tf.square(self.output_scaled - self.input_scaled))
+            # self.output = (self.output_scaled + 1) * 128.0
+            # self.loss = tf.reduce_mean(tf.square(self.output - self.input))
             self.opt = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
 
             # Interface
