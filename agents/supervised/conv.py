@@ -127,7 +127,7 @@ class SupervisedConv(Supervised):
                 self.deconv_layers.append(layer)
                 layer_idx += 1
             
-            self.output_scaled = tf.layers.conv2d_transpose(
+            self.output = tf.layers.conv2d_transpose(
                 self.deconv_layers[-1],
                 3,  # RGB
                 5,
@@ -135,14 +135,14 @@ class SupervisedConv(Supervised):
                 padding='same',
                 activation=None,
             )
-            self.loss = tf.reduce_mean(tf.square(self.output_scaled - self.input_scaled))
+            self.loss = tf.reduce_mean(tf.square(self.output - self.input_scaled))
             # self.output = (self.output_scaled + 1) * 128.0
             # self.loss = tf.reduce_mean(tf.square(self.output - self.input))
             self.opt = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.loss)
 
-            # Interface
-            for var in [self.input, self.output, self.training]:
-                tf.add_to_collection('interface', var)
+            # # Interface
+            # for var in [self.input, self.output, self.training]:
+            #     tf.add_to_collection('interface', var)
 
     def learn(self,
         sess:tf.Session,
