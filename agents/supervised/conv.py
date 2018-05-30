@@ -26,7 +26,7 @@ class SupervisedConv(Supervised):
             # 'state': _input,
             # 'training': training,
         })
-        print(tf.get_default_graph().as_graph_def())
+        # print(tf.get_default_graph().as_graph_def())
         self.saver = self.restore_saver
         # TODO Figure out name resolution
         self.output, = tf.get_default_graph().get_operation_by_name('/'.join([parent_name, name, name, 'embedding', 'Relu'])).outputs
