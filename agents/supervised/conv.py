@@ -18,16 +18,20 @@ class SupervisedConv(Supervised):
     def _restore_graph(self, _input:tf.Tensor, training:tf.Tensor, name:str='SupervisedConv'):
         '''Returns input and output tensors.'''
         checkpoint_name = self._checkpoint_name()
+        with tf.gfile.GFile('{}.meta'.format(checkpoint_name), "rb") as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString(f.read())
+
         # self.output = tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
-        tf.train.import_meta_graph('{}.meta'.format(checkpoint_name), input_map={
+        self.output = tf.import_graph_def(graph_def, input_map={
             'input': _input,
             'training': training,
-        })
-        # }, return_elements=[
-        #     'embedding',
-        # ])
-        graph = tf.get_default_graph()
-        self.output = graph.get_tensor_by_name('embedding')
+        # })
+        }, return_elements=[
+            'embedding',
+        ])
+        # graph = tf.get_default_graph()
+        # self.output = graph.get_tensor_by_name('embedding')
         # self.input, self.output, self.training = graph.get_collection('interface')
 
     def __init__(self,
@@ -63,12 +67,12 @@ class SupervisedConv(Supervised):
         # training = tf.constant(False)
         with tf.variable_scope(name):
             # Inputs
-            # self._input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
+            self.input = tf.placeholder(tf.float32, [None, *state_shape], name='state')
             # self.input = tf.placeholder_with_default(_input, [None, *state_shape], name='input')
-            self.input = tf.reshape(tf.Variable(_input, validate_shape=False, trainable=False, name='input'), [-1, *state_shape])
-            # self._training = tf.placeholder(tf.bool, name='training')
+            # self.input = tf.reshape(tf.Variable(_input, validate_shape=False, trainable=False, name='input'), [-1, *state_shape])
+            self.training = tf.placeholder(tf.bool, name='training')
             # self.training = tf.placeholder_with_default(training, [], name='training')
-            self.training = tf.reshape(tf.Variable(training, validate_shape=False, trainable=False, name='training'), [])
+            # self.training = tf.reshape(tf.Variable(training, validate_shape=False, trainable=False, name='training'), [])
             self.dropout_rate = cfg['dropout']
 
             # Convolutional layers
