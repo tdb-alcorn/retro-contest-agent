@@ -6,7 +6,7 @@ from agents.utils import flatten, find_action, as_binary_array, make_actions
 from agents.deep_q.q_net import QNet
 from agents.supervised.conv import SupervisedConv
 from agents.config import env, deep_q
-cfg = deep_q['conv_recurrent_rl2']
+cfg = deep_q['conv_recurrent_rl2_transfer']
 
 
 class FrameHistory(object):

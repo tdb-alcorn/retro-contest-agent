@@ -124,6 +124,13 @@ deep_q = {
             },
         ],
     },
+    'conv_recurrent_rl2_transfer': {
+        'learning_rate': 2.5e-4,
+        'rnn_layers': [32, 32, 32],
+        'rl2_layers': [32, 32, 32],
+        'dropout': 0.5,
+        'num_frames': 40,
+    },
     'rl2': {
         'learning_rate': 2.5e-4,
         'embedding': 128,
