@@ -5,9 +5,9 @@ env = {
 
 supervised = {
     'conv': {
-        'learning_rate': 2.5e-4,
+        'learning_rate': 1e-3,
         'dropout': 0.5,
-        'embedding': 128,
+        'embedding': 32,
         'layers': [
             {
                 'type': 'conv2d',
@@ -17,7 +17,7 @@ supervised = {
             },
             {
                 'type': 'conv2d',
-                'filters': 32,
+                'filters': 16,
                 'kernel_size': 5,
                 'strides': 2,
             },
@@ -29,13 +29,13 @@ supervised = {
             },
             {
                 'type': 'conv2d',
-                'filters': 64,
+                'filters': 32,
                 'kernel_size': 5,
                 'strides': 2,
             },
             {
                 'type': 'conv2d',
-                'filters': 128,
+                'filters': 32,
                 'kernel_size': 5,
                 'strides': 2,
             },
