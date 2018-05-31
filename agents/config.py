@@ -60,6 +60,10 @@ deep_q = {
         },
         'until': 2e4,
     },
+    'backtracking': {
+        'num_frames_no_progress': 100,
+        'progress_threshold': 10,
+    },
     'simple': {
         'learning_rate': 1e-5,
         'num_hidden': 1024,
@@ -129,7 +133,7 @@ deep_q = {
         'rnn_layers': [32, 32, 32],
         'rl2_layers': [32, 32, 32],
         'dropout': 0.5,
-        'num_frames': 40,
+        'num_frames': 4,
     },
     'rl2': {
         'learning_rate': 2.5e-4,
