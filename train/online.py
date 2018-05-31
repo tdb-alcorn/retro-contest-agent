@@ -6,6 +6,7 @@ from contextlib import closing
 import tensorflow as tf
 import numpy as np
 from typing import Type, Union
+from train.play import KeyboardController
 
 
 def train(
@@ -88,20 +89,36 @@ def run_episode(sess:tf.Session, env, agent:Agent, memory=None, render:bool=Fals
         memory.begin_episode(state)
     if render:
         env.render()
+        controller = KeyboardController()
+        teaching = False
     while not done:
-        action = agent.act(sess, state, True)
-        next_state, reward, done, _ = env.step(action)
-        agent.step(sess, state, action, reward, next_state, done)
+        try:
+            if teaching:
+                action = controller.read_action()
+                if controller.done:
+                    teaching = False
+                    controller.done = False
+                    continue
+            else:
+                action = agent.act(sess, state, True)
 
-        if render:
-            env.render()
+            next_state, reward, done, _ = env.step(action)
+            agent.step(sess, state, action, reward, next_state, done)
 
-        if memory is not None:
-            memory.add((state, action, reward, next_state, done))
-        
-        state = next_state
-        if done:
-            state = env.reset()
+            if render:
+                env.render()
+
+            if memory is not None:
+                memory.add((state, action, reward, next_state, done))
+            
+            state = next_state
+            if done:
+                state = env.reset()
+        except KeyboardInterrupt:
+            if render and not teaching:
+                teaching = True
+                continue
+            raise
 
 
 if __name__ == '__main__':
