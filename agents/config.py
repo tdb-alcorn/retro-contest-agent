@@ -51,12 +51,12 @@ supervised = {
 
 deep_q = {
     'gamma': 0.99,
-    'reward_offset': -0.1,
+    'reward_offset': 0,
     'noise': {
         'epsilon': {
-            'start': 0.4,
-            'end': 0.1,
-            'test': 0.1,
+            'start': 0.2,
+            'end': 0.05,
+            'test': 0.05,
         },
         'until': 2e4,
     },
