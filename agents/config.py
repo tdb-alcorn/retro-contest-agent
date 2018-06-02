@@ -63,6 +63,7 @@ deep_q = {
     'backtracking': {
         'num_frames_no_progress': 100,
         'progress_threshold': 10,
+        'num_frames_backtrack': 70,
     },
     'simple': {
         'learning_rate': 1e-5,

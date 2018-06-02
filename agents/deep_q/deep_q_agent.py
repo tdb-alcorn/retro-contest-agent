@@ -40,8 +40,10 @@ class DeepQAgent(Agent, Generic[Net]):
 
         self.num_frames_no_progress = deep_q['backtracking']['num_frames_no_progress']
         self.progress_threshold = deep_q['backtracking']['progress_threshold']
+        self.num_frames_backtrack = deep_q['backtracking']['num_frames_backtrack']
         self.reward_buffer = deque(list(), self.num_frames_no_progress)
         self.backtracking = False
+        self.backtracking_frames = 0
 
         return self
         
@@ -57,7 +59,9 @@ class DeepQAgent(Agent, Generic[Net]):
         self.frame += 1
         self._episode_reward += reward
         self.reward_buffer.append(reward)
-        self.backtracking = self.frame >= self.num_frames_no_progress and sum(self.reward_buffer) < self.progress_threshold
+        self.backtracking = self.backtracking_frames <= self.num_frames_backtrack and self.frame >= self.num_frames_no_progress and sum(self.reward_buffer) < self.progress_threshold
+        if not self.backtracking:
+            self.backtracking_frames = 0
         # print(sum(self.reward_buffer), self.backtracking)
         # online learning
         loss = self.learn(sess, [state], [action], [reward], [next_state], [done])
@@ -68,6 +72,7 @@ class DeepQAgent(Agent, Generic[Net]):
             self.frame = 0
             self.reward_buffer.clear()
             self.backtracking = False
+            self.backtracking_frames = 0
             # TODO make an agent wrapper AgentWithMemory
             # if self.memory.count() > self.batch_size:
             #     loss = self.learn(sess, gamma=self.gamma)
@@ -95,12 +100,10 @@ class DeepQAgent(Agent, Generic[Net]):
         if random_action:
             action_idx = np.random.randint(self.net.num_actions)
             action = self.actions[action_idx]
-            # action = self.actions[2]  # RIGHT
         else:
             action = self.net.act(sess, state)
-        # print("\033[K", end='\r')
-        # print('\r' + repr(action), end='')
         if self.backtracking:
+            self.backtracking_frames += 1
             # swap left (6) and right (7)
             action[6], action[7] = action[7], action[6]
             action_idx = find_action_idx(self.actions, action)
