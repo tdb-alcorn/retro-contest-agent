@@ -28,7 +28,7 @@ class DeepQAgent(Agent, Generic[Net]):
             **kwargs)
         self.gamma = deep_q['gamma']
         self.noise = DecayProcess(explore_start=deep_q['noise']['epsilon']['start'], explore_stop=deep_q['noise']['epsilon']['end'], final_frame=deep_q['noise']['until'])
-        self.checkpoint_name = "checkpoints/deep_q_agent_{}.ckpt".format(type(self.net).__name__)
+        self.checkpoint_name = "checkpoints/deep_q_agent_{}_{}.ckpt".format(type(self.net).__name__, env['name'])
 
         self.actions = make_actions()
         

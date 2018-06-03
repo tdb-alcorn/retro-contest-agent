@@ -1,12 +1,13 @@
 from agents import all_agents
 from agents.agent import Agent
-from train.utils import write_to_csv, get_levels, random_if_empty, ensure_directory_exists
-from retro_contest.local import make
+from train.utils import write_to_csv, get_levels, random_choice, random_if_empty, ensure_directory_exists
+import retro
 from contextlib import closing
 import tensorflow as tf
 import numpy as np
 from typing import Type, Union
 from train.play import KeyboardController
+import agents.config as config
 
 
 def train(
@@ -23,7 +24,12 @@ def train(
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.WARN)
 
-    with closing(make(game=game, state=state, bk2dir=bk2dir)) as env:
+    # with closing(retro.make(game=game, state=state, bk2dir=bk2dir)) as env:
+    with closing(retro.make(game=game, state=state, record=bk2dir)) as env:
+        config.env['name'] = game
+        config.env['state_shape'] = env.action_space.shape
+        config.env['action_shape'] = env.observation_space.shape
+
         agent = agent_constructor()
 
         with tf.Session() as sess:
@@ -68,7 +74,7 @@ def train_all(
         try:
             for game, level in all_levels:
                 print("Playing game {} on level {}".format(game, level))
-                with closing(make(game=game, state=level, bk2dir=bk2dir)) as env:
+                with closing(retro.make(game=game, state=level, record=bk2dir)) as env:
                     for episode in range(num_episodes):
                         if episode % log_every == 0:
                             print("Episode %d" % episode)
@@ -137,6 +143,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
+
     if args.agent in all_agents:
         agent_constructor = all_agents[args.agent]
 
@@ -147,8 +154,13 @@ if __name__ == '__main__':
         if args.all:
             train_all(agent_constructor, args.num_episodes, bk2dir=args.bk2dir, loss_filename=args.loss_filename)
         else:
+            all_games = retro.list_games()
+            # game = random_choice(all_games)
+            game = 'Airstriker-Genesis'
+            all_levels = retro.list_states(game)
+            level = random_choice(all_levels)
             # Choose a random/game level if none is specified
-            game, level = random_if_empty(args.game, args.level)
+            # game, level = random_if_empty(args.game, args.level)
             print("Playing game {} on level {}".format(game, level))
 
             # Run training

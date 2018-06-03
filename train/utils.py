@@ -31,6 +31,9 @@ def get_levels_by_game(validation:bool=False) -> Dict[str, List[str]]:
             levels[row[0]].append(row[1])
     return levels
 
+def random_choice(lst:List):
+    return lst[np.random.choice(len(lst))]
+
 def random_if_empty(game:str, level:str, validation:bool=False):
     if game == '' or level == '':
         all_levels = get_levels_by_game(validation=validation)

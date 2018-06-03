@@ -9,6 +9,7 @@ import numpy as np
 from collections import deque
 from typing import Type, Union
 import time
+from train.play import KeyboardController
 
 
 def train(
@@ -75,23 +76,38 @@ def run_episode(sess:tf.Session, env, agent:Agent, render:bool=False) -> float:
     state = env.reset()
     if render:
         env.render()
+        controller = KeyboardController()
+        teaching = False
     while not done:
-        # TODO Print frame and reward here (overwrite)
-        action = agent.act(sess, state, True)
-        next_state, reward, done, _ = env.step(action)
-        if render:
-            env.render()
-        reward_buffer.append(reward)
-        total_reward += reward
-        agent.step(sess, state, action, reward, next_state, done)
-        state = next_state
-        frame_times.append(time.time())
-        fps = len(frame_times)/(frame_times[-1] - frame_times[0])
-        print("\033[K", end='\r')
-        print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
-        frame += 1
-        if frame >= num_frames_no_progress and sum(reward_buffer) < progress_threshold:
-            break
+        try:
+            if teaching:
+                action = controller.read_action()
+                if controller.done:
+                    teaching = False
+                    controller.done = False
+                    continue
+            else:
+                # TODO Print frame and reward here (overwrite)
+                action = agent.act(sess, state, True)
+            next_state, reward, done, _ = env.step(action)
+            if render:
+                env.render()
+            reward_buffer.append(reward)
+            total_reward += reward
+            agent.step(sess, state, action, reward, next_state, done)
+            state = next_state
+            frame_times.append(time.time())
+            fps = len(frame_times)/(frame_times[-1] - frame_times[0])
+            print("\033[K", end='\r')
+            print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
+            frame += 1
+            # if frame >= num_frames_no_progress and sum(reward_buffer) < progress_threshold:
+            #     break
+        except KeyboardInterrupt:
+            if render and not teaching:
+                teaching = True
+                continue
+            raise
     print()
     return total_reward
 
