@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Type, Union
+from typing import Type, Union, NamedTuple
 from agents import Agent
 from objective import Objective
 from play import KeyboardController
@@ -125,7 +125,7 @@ class Regimen(object):
                 plugin.before_step(frame)
             self.before_step(frame)
 
-            reward, done = self.step(
+            next_state, reward, done = self.step(
                 epoch,
                 render=render,
             )
@@ -143,11 +143,12 @@ class Regimen(object):
                 plugin.after_step(frame, reward, done)
             self.after_step(frame, reward, done)
 
+            state = next_state
             frame += 1
 
 
-    def use(self, other:Type[Plugin]):
-        self.plugins.append(other())
+    def use(self, plugin:Plugin):
+        self.plugins.append(plugin)
 
     def step(self, frame:int, render:bool=False):
         if self.teaching:
@@ -197,6 +198,28 @@ class Regimen(object):
         pass
 
 
+class Step(object):
+    def __init__(self, state):
+        self.frame = 0
+        self.state = state
+        self.action = None
+        self.reward = 0.0
+        self.done = False
+        self.info = info if info is not None else dict()
+
+    def update(self, action, next_state, reward, done, info):
+        self.frame += 1
+        self.action = action
+        self.state = next_state
+        self.reward = reward
+        self.done = done
+        self.info = info
+
+class Epoch(object):
+    def __init__(self, env):
+        self.env = env
+
+
 class Plugin(object):
     def before_epoch(self, regimen:Regimen, epoch:int):
         pass
@@ -210,10 +233,10 @@ class Plugin(object):
     def after_episode(self, regimen:Regimen, episode:int):
         pass
     
-    def before_step(self, regimen:Regimen, frame:int):
+    def before_step(self, regimen:Regimen, step:Step):
         pass
     
-    def after_step(self, regimen:Regimen, frame:int, reward:float, done:bool):
+    def after_step(self, regimen:Regimen, step:Step):
         pass
     
     def before_training(self, regimen:Regimen):

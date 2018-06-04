@@ -3,9 +3,12 @@ from collections import deque
 from ..regimen import Plugin, Regimen, Step
 
 
-class DetectNoProgress(Plugin):
-    def __init__(self, num_frames_no_progress:int, progress_threshold:float=0):
+class ManualOverride(Plugin):
+    def __init__(self, , progress_threshold:float=0):
         # Framerate running average over the last 10 frames
+        self.teaching = False
+        self.controller = None
+        controller = KeyboardController()
         self.num_frames_no_progress = num_frames_no_progress
         self.progress_threshold = progress_threshold
         self.reward_buffer = deque(list(), num_frames_no_progress)
