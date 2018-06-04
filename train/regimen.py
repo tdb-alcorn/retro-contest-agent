@@ -20,7 +20,7 @@ class Regimen(object):
         objective:Objective,
     ):
         self.teaching = False
-        self.message = ""
+        self.message = list()
         self.plugins = list()
         self.objective = objective
         self.agent_constructor = agent_constructor
@@ -34,6 +34,9 @@ class Regimen(object):
         self.action = None
         self.game = ''
         self.state = ''
+    
+    def log(self, message:str):
+        self.message.append(message)
     
     def train(self,
         game:str,
@@ -115,6 +118,9 @@ class Regimen(object):
         frame = 0
         total_reward = 0
         while not done:
+            # Clear log message
+            self.message = list()
+
             for plugin in self.plugins:
                 plugin.before_step(frame)
             self.before_step(frame)
@@ -124,16 +130,26 @@ class Regimen(object):
                 render=render,
             )
             total_reward += reward
+            # Add basic message prefix
+            self.message = [
+                "Frame: {:d}".format(self.frame),
+                "Reward: {:.2f}".format(reward),
+                "Total: {:.2f}".format(total_reward),
+            ] + self.message
+            print("\033[K", end='\r')
+            print('\t'.join(self.message), end='\r')
 
             for plugin in self.plugins:
                 plugin.after_step(frame, reward, done)
             self.after_step(frame, reward, done)
 
+            frame += 1
 
-    def use(self, other:Regimen):
-        self.plugins.append(other)
 
-    def step(self, step:int, render:bool=False):
+    def use(self, other:Type[Plugin]):
+        self.plugins.append(other())
+
+    def step(self, frame:int, render:bool=False):
         if self.teaching:
             action = controller.read_action()
             if controller.done:
@@ -152,7 +168,6 @@ class Regimen(object):
         state = next_state
         frame_times.append(time.time())
         fps = len(frame_times)/(frame_times[-1] - frame_times[0])
-        print("\033[K", end='\r')
         print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
         frame += 1
 
@@ -179,4 +194,30 @@ class Regimen(object):
         pass
     
     def after_training(self):
+        pass
+
+
+class Plugin(object):
+    def before_epoch(self, regimen:Regimen, epoch:int):
+        pass
+    
+    def after_epoch(self, regimen:Regimen, epoch:int):
+        pass
+
+    def before_episode(self, regimen:Regimen, episode:int):
+        pass
+    
+    def after_episode(self, regimen:Regimen, episode:int):
+        pass
+    
+    def before_step(self, regimen:Regimen, frame:int):
+        pass
+    
+    def after_step(self, regimen:Regimen, frame:int, reward:float, done:bool):
+        pass
+    
+    def before_training(self, regimen:Regimen):
+        pass
+    
+    def after_training(self, regimen:Regimen):
         pass
