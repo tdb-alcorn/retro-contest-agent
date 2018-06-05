@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Type, Union, NamedTuple
+from typing import Type, Union, NamedTuple, Dict, Any
 from contextlib import closing
 from agents import Agent
 from objective import Objective
@@ -38,6 +38,7 @@ class Regimen(object):
     def __init__(self,
         agent_constructor:Type[Agent],
         objective:Objective,
+        config:Dict[str, Any]=dict(),
     ):
         self.message = list()
         self.plugins = list()
@@ -187,6 +188,14 @@ class Regimen(object):
             self.env.render()
         self.agent.step(self.sess, step.state, step.action, reward, next_state, done)
         step.update(next_state, reward, done, info)
+
+    # User-defined methods
+    def config(self) -> Dict[str, Any]:
+        '''
+        config should return a dictionary of parameter names needed from the
+        caller mapped to their default values.
+        '''
+        return dict()
 
     def before_epoch(self, epoch:int):
         pass

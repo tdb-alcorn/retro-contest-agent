@@ -70,7 +70,7 @@ while not valid_environment:
     except FileNotFoundError:
         continue
 
-regimen = regimen_constructor(agent_constructor, objective)
+regimen = regimen_constructor(agent_constructor, objective, config)
 regimen.use(DisplayFramerate())
 regimen.use(ManualOverride())
 regimen.use(NoProgressEarlyStopping(500, progress_threshold=0))
