@@ -3,7 +3,26 @@ from typing import Type, Union, NamedTuple
 from contextlib import closing
 from agents import Agent
 from objective import Objective
-from play import KeyboardController
+from .play import KeyboardController
+from .plugin import Plugin
+from retro_contest.local import make
+
+
+class Step(object):
+    def __init__(self, state):
+        self.frame = 0
+        self.state = state
+        self.action = None
+        self.reward = 0.0
+        self.done = False
+        self.info = None
+
+    def update(self, next_state, reward, done, info):
+        self.frame += 1
+        self.state = next_state
+        self.reward = reward
+        self.done = done
+        self.info = info
 
 
 class Regimen(object):
@@ -53,11 +72,13 @@ class Regimen(object):
         tf.logging.set_verbosity(tf.logging.WARN)
         tf.reset_default_graph()
 
+        self.agent = self.agent_constructor()
+
         for plugin in self.plugins:
-            plugin.before_training()
+            plugin.before_training(self)
         self.before_training()
 
-        for epoch in epochs:
+        for epoch in range(epochs):
             self.run_epoch(
                 epoch,
                 episodes_per_epoch,
@@ -67,7 +88,7 @@ class Regimen(object):
             )
         
         for plugin in self.plugins:
-            plugin.after_training()
+            plugin.after_training(self)
         self.after_training()
 
     def run_epoch(self,
@@ -78,21 +99,20 @@ class Regimen(object):
         out_filename:str='',
     ):
         try:
-            print("Playing game {} on level {}".format(self.game, self.level))
-            with closing(make(game=self.game, state=self.state, bk2dir=bk2dir)) as env:
-                self.env = env
+            print("Playing game {} on level {}".format(self.game, self.state))
+            self.env = make(game=self.game, state=self.state, bk2dir=bk2dir)
 
-                for plugin in self.plugins:
-                    plugin.before_epoch(epoch)
-                self.before_epoch(epoch)
+            for plugin in self.plugins:
+                plugin.before_epoch(self, epoch)
+            self.before_epoch(epoch)
 
-                for episode in range(episodes):
-                    reward = self.run_episode(episode, render=render)
-                    self.rewards.append((epoch, self.game, self.state, episode, reward))
+            for episode in range(episodes):
+                reward = self.run_episode(episode, render=render)
+                self.rewards.append((epoch, self.game, self.state, episode, reward))
 
-                for plugin in self.plugins:
-                    plugin.after_epoch(epoch)
-                self.after_epoch(epoch)
+            for plugin in self.plugins:
+                plugin.after_epoch(self, epoch)
+            self.after_epoch(epoch)
 
         finally:
             print("Saving agent... ", end='')
@@ -102,14 +122,15 @@ class Regimen(object):
                 losses = self.agent.losses
                 numbered_losses = list(zip(range(len(losses)), losses))
                 self.losses.extend([(epoch, *row) for row in numbered_losses])
+            self.env.close()
     
     def run_episode(self,
         episode:int,
         render:bool=False
     ) -> float:
         total_reward = 0
-
         state = self.env.reset()
+        self.objective.reset()
         step = Step(state)
 
         for plugin in self.plugins:
@@ -119,7 +140,6 @@ class Regimen(object):
         while not step.done:
             # Clear log message
             self.message = list()
-
             step.action = self.agent.act(self.sess, step.state, True)
 
             for plugin in self.plugins:
@@ -127,29 +147,31 @@ class Regimen(object):
             self.before_step(step)
 
             try:
-                next_state, reward, done, info = self.step(step, render=render)
-                step.update(action, next_state, reward, done, info)
-                total_reward += reward
-            except e:
+                self.step(step, render=render)
+                total_reward += step.reward
+            except Exception as e:
                 for plugin in self.plugins:
                     if plugin.on_error(self, step, e):
                         raise
                 if self.on_error(step, e):
                     raise
 
+            for plugin in self.plugins:
+                plugin.after_step(self, step)
+            self.after_step(step)
+
             # Add basic message prefix
             self.message = [
-                "Frame: {:d}".format(self.frame),
-                "Reward: {:.2f}".format(reward),
+                "Frame: {:d}".format(step.frame),
+                "Reward: {:.2f}".format(step.reward),
                 "Total: {:.2f}".format(total_reward),
             ] + self.message
             print("\033[K", end='\r')
             print('\t'.join(self.message), end='\r')
-
-            for plugin in self.plugins:
-                plugin.after_step(self, step)
-            self.after_step(step)
         
+        # newline for message
+        print()
+
         for plugin in self.plugins:
             plugin.after_episode(self, episode)
         self.after_episode(episode)
@@ -157,11 +179,13 @@ class Regimen(object):
     def use(self, plugin:Plugin):
         self.plugins.append(plugin)
 
-    def step(self, render:bool=False):
-        next_state, reward, done, _ = env.step(action)
+    def step(self, step:Step, render:bool=False):
+        next_state, reward, done, info = self.env.step(step.action)
+        reward = self.objective.step(self.sess, step.state, step.action, reward)
         if render:
-            env.render()
-        agent.step(sess, state, action, reward, next_state, done)
+            self.env.render()
+        self.agent.step(self.sess, step.state, step.action, reward, next_state, done)
+        step.update(next_state, reward, done, info)
 
     def before_epoch(self, epoch:int):
         pass
@@ -191,23 +215,6 @@ class Regimen(object):
         pass
 
 
-class Step(object):
-    def __init__(self, state):
-        self.frame = 0
-        self.state = state
-        self.action = None
-        self.reward = 0.0
-        self.done = False
-        self.info = None
-
-    def update(self, action, next_state, reward, done, info):
-        self.frame += 1
-        self.action = action
-        self.state = next_state
-        self.reward = reward
-        self.done = done
-        self.info = info
-
 # class Epoch(object):
 #     def __init__(self, epoch:int, env):
 #         self.epoch = epoch
@@ -219,31 +226,3 @@ class Step(object):
 #         self.render = render
 #         self.total_reward = 0
 
-
-class Plugin(object):
-    def before_epoch(self, regimen:Regimen, epoch:int):
-        pass
-    
-    def after_epoch(self, regimen:Regimen, epoch:int):
-        pass
-
-    def before_episode(self, regimen:Regimen, episode:int):
-        pass
-    
-    def after_episode(self, regimen:Regimen, episode:int):
-        pass
-    
-    def before_step(self, regimen:Regimen, step:Step):
-        pass
-    
-    def after_step(self, regimen:Regimen, step:Step):
-        pass
-    
-    def before_training(self, regimen:Regimen):
-        pass
-    
-    def after_training(self, regimen:Regimen):
-        pass
-    
-    def on_error(self, regimen:Regimen, step:Step, exception:Exception):
-        pass

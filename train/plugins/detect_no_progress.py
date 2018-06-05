@@ -1,6 +1,7 @@
 import time
 from collections import deque
-from ..regimen import Plugin, Regimen, Step
+from ..plugin import Plugin
+from ..regimen import Regimen, Step
 
 
 class DetectNoProgress(Plugin):

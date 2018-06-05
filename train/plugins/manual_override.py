@@ -1,7 +1,8 @@
 import time
 from collections import deque
 from ..play import KeyboardController
-from ..regimen import Plugin, Regimen, Step
+from ..plugin import Plugin
+from ..regimen import Regimen, Step
 
 
 class ManualOverride(Plugin):
@@ -22,7 +23,7 @@ class ManualOverride(Plugin):
                 self.controller.done = False
     
     def on_error(self, regimen:Regimen, step:Step, exception:Exception) -> bool:
-        if e is KeyboardInterrupt:
+        if exception is KeyboardInterrupt:
             if not self.teaching:
                 self.teaching = True
                 return False
