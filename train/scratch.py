@@ -1,5 +1,5 @@
 from .regimen import Regimen
-from .plugins import Framerate, DetectNoProgress
+from .plugins import Framerate, DetectNoProgress, ManualOverride
 
 
 r = Regimen()
@@ -8,4 +8,4 @@ r.use(DetectNoProgress(100))
 r.use(ManualOverride)
 r.use(OutputCsv)
 r.use(FileMemory)
-r.use(Render)
+# r.use(Render)

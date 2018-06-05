@@ -36,7 +36,7 @@ keymap = {
 }
 
 class KeyboardController(object):
-    def __init__(self):
+    def __init__(self, action_shape, keymap=None):
         tty.setcbreak(sys.stdin)
         self.actions = make_actions()
         self.done = False

@@ -1,19 +1,29 @@
 import time
 from collections import deque
+from ..play import KeyboardController
 from ..regimen import Plugin, Regimen, Step
 
 
 class ManualOverride(Plugin):
-    def __init__(self, , progress_threshold:float=0):
+    def __init__(self):
         # Framerate running average over the last 10 frames
         self.teaching = False
         self.controller = None
-        controller = KeyboardController()
-        self.num_frames_no_progress = num_frames_no_progress
-        self.progress_threshold = progress_threshold
-        self.reward_buffer = deque(list(), num_frames_no_progress)
 
-    def after_step(self, regimen:Regimen, step:Step):
-        self.reward_buffer.append(step.reward)
-        if step.frame >= self.num_frames_no_progress and sum(self.reward_buffer) < self.progress_threshold:
-            step.done = True
+    def before_epoch(self, regimen:Regimen, epoch:int):
+        self.controller = KeyboardController(regimen.env.action_space.shape)
+
+    def before_step(self, regimen:Regimen, step:Step):
+        if self.teaching:
+            action = self.controller.read_action()
+            step.action = action
+            if self.controller.done:
+                self.teaching = False
+                self.controller.done = False
+    
+    def on_error(self, regimen:Regimen, step:Step, exception:Exception) -> bool:
+        if e is KeyboardInterrupt:
+            if not self.teaching:
+                self.teaching = True
+                return False
+        return True

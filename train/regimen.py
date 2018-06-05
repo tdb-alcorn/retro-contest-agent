@@ -1,5 +1,6 @@
 import tensorflow as tf
 from typing import Type, Union, NamedTuple
+from contextlib import closing
 from agents import Agent
 from objective import Objective
 from play import KeyboardController
@@ -19,7 +20,6 @@ class Regimen(object):
         agent_constructor:Type[Agent],
         objective:Objective,
     ):
-        self.teaching = False
         self.message = list()
         self.plugins = list()
         self.objective = objective
@@ -58,10 +58,6 @@ class Regimen(object):
         self.before_training()
 
         for epoch in epochs:
-            for plugin in self.plugins:
-                plugin.before_epoch(epoch)
-            self.before_epoch(epoch)
-
             self.run_epoch(
                 epoch,
                 episodes_per_epoch,
@@ -69,10 +65,6 @@ class Regimen(object):
                 bk2dir=bk2dir,
                 out_filename=out_filename
             )
-
-            for plugin in self.plugins:
-                plugin.after_epoch(epoch)
-            self.after_epoch(epoch)
         
         for plugin in self.plugins:
             plugin.after_training()
@@ -89,17 +81,19 @@ class Regimen(object):
             print("Playing game {} on level {}".format(self.game, self.level))
             with closing(make(game=self.game, state=self.state, bk2dir=bk2dir)) as env:
                 self.env = env
-                for episode in range(episodes):
-                    for plugin in self.plugins:
-                        plugin.before_episode(episode)
-                    self.before_episode(episode)
 
+                for plugin in self.plugins:
+                    plugin.before_epoch(epoch)
+                self.before_epoch(epoch)
+
+                for episode in range(episodes):
                     reward = self.run_episode(episode, render=render)
                     self.rewards.append((epoch, self.game, self.state, episode, reward))
 
-                    for plugin in self.plugins:
-                        plugin.after_episode(episode)
-                    self.after_episode(episode)
+                for plugin in self.plugins:
+                    plugin.after_epoch(epoch)
+                self.after_epoch(epoch)
+
         finally:
             print("Saving agent... ", end='')
             self.agent.save(self.sess)
@@ -113,23 +107,36 @@ class Regimen(object):
         episode:int,
         render:bool=False
     ) -> float:
-        done = False
-        state = self.env.reset()
-        frame = 0
         total_reward = 0
-        while not done:
+
+        state = self.env.reset()
+        step = Step(state)
+
+        for plugin in self.plugins:
+            plugin.before_episode(self, episode)
+        self.before_episode(episode)
+
+        while not step.done:
             # Clear log message
             self.message = list()
 
-            for plugin in self.plugins:
-                plugin.before_step(frame)
-            self.before_step(frame)
+            step.action = self.agent.act(self.sess, step.state, True)
 
-            next_state, reward, done = self.step(
-                epoch,
-                render=render,
-            )
-            total_reward += reward
+            for plugin in self.plugins:
+                plugin.before_step(self, step)
+            self.before_step(step)
+
+            try:
+                next_state, reward, done, info = self.step(step, render=render)
+                step.update(action, next_state, reward, done, info)
+                total_reward += reward
+            except e:
+                for plugin in self.plugins:
+                    if plugin.on_error(self, step, e):
+                        raise
+                if self.on_error(step, e):
+                    raise
+
             # Add basic message prefix
             self.message = [
                 "Frame: {:d}".format(self.frame),
@@ -140,38 +147,21 @@ class Regimen(object):
             print('\t'.join(self.message), end='\r')
 
             for plugin in self.plugins:
-                plugin.after_step(frame, reward, done)
-            self.after_step(frame, reward, done)
-
-            state = next_state
-            frame += 1
-
+                plugin.after_step(self, step)
+            self.after_step(step)
+        
+        for plugin in self.plugins:
+            plugin.after_episode(self, episode)
+        self.after_episode(episode)
 
     def use(self, plugin:Plugin):
         self.plugins.append(plugin)
 
-    def step(self, frame:int, render:bool=False):
-        if self.teaching:
-            action = controller.read_action()
-            if controller.done:
-                teaching = False
-                controller.done = False
-                continue
-        else:
-            # TODO Print frame and reward here (overwrite)
-        self.action = agent.act(sess, state, True)
+    def step(self, render:bool=False):
         next_state, reward, done, _ = env.step(action)
         if render:
             env.render()
-        reward_buffer.append(reward)
-        total_reward += reward
         agent.step(sess, state, action, reward, next_state, done)
-        state = next_state
-        frame_times.append(time.time())
-        fps = len(frame_times)/(frame_times[-1] - frame_times[0])
-        print("Frame: {:d}\tReward: {:.2f}\tTotal: {:.2f}\tFramerate: {:.2f}/sec".format(frame, reward, total_reward, fps), end='\r')
-        frame += 1
-
 
     def before_epoch(self, epoch:int):
         pass
@@ -185,16 +175,19 @@ class Regimen(object):
     def after_episode(self, episode:int):
         pass
     
-    def before_step(self, frame:int):
+    def before_step(self, step:Step):
         pass
     
-    def after_step(self, frame:int, reward:float, done:bool):
+    def after_step(self, step:Step):
         pass
     
     def before_training(self):
         pass
     
     def after_training(self):
+        pass
+    
+    def on_error(self, step:Step, exception:Exception):
         pass
 
 
@@ -205,7 +198,7 @@ class Step(object):
         self.action = None
         self.reward = 0.0
         self.done = False
-        self.info = info if info is not None else dict()
+        self.info = None
 
     def update(self, action, next_state, reward, done, info):
         self.frame += 1
@@ -215,9 +208,16 @@ class Step(object):
         self.done = done
         self.info = info
 
-class Epoch(object):
-    def __init__(self, env):
-        self.env = env
+# class Epoch(object):
+#     def __init__(self, epoch:int, env):
+#         self.epoch = epoch
+#         self.env = env
+
+# class Episode(object):
+#     def __init__(self, episode:int, render:bool=False):
+#         self.episode = episode
+#         self.render = render
+#         self.total_reward = 0
 
 
 class Plugin(object):
@@ -243,4 +243,7 @@ class Plugin(object):
         pass
     
     def after_training(self, regimen:Regimen):
+        pass
+    
+    def on_error(self, regimen:Regimen, step:Step, exception:Exception):
         pass
