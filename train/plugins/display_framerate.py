@@ -4,7 +4,7 @@ from ..plugin import Plugin
 from ..regimen import Regimen, Step
 
 
-class Framerate(Plugin):
+class DisplayFramerate(Plugin):
     def __init__(self):
         # Framerate running average over the last 10 frames
         self.frame_times = deque(list(), 10)

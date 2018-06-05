@@ -4,7 +4,7 @@ from ..plugin import Plugin
 from ..regimen import Regimen, Step
 
 
-class DetectNoProgress(Plugin):
+class NoProgressEarlyStopping(Plugin):
     def __init__(self, num_frames_no_progress:int, progress_threshold:float=0):
         # Framerate running average over the last 10 frames
         self.num_frames_no_progress = num_frames_no_progress
