@@ -137,8 +137,8 @@ class Regimen(object):
             plugin.before_episode(self, episode)
         self.before_episode(episode)
 
-        while not step.done:
-            try:
+        try:
+            while not step.done:
                 # Clear log message
                 self.message = list()
                 step.action = self.agent.act(self.sess, step.state, True)
@@ -147,8 +147,15 @@ class Regimen(object):
                     plugin.before_step(self, step)
                 self.before_step(step)
 
-                self.step(step, render=render)
-                total_reward += step.reward
+                try:
+                    self.step(step, render=render)
+                    total_reward += step.reward
+                except (Exception, KeyboardInterrupt) as e:
+                    for plugin in self.plugins:
+                        if plugin.on_error(self, step, e):
+                            raise
+                    if self.on_error(step, e):
+                        raise
 
                 for plugin in self.plugins:
                     plugin.after_step(self, step)
@@ -162,16 +169,9 @@ class Regimen(object):
                 ] + self.message
                 print("\033[K", end='\r')
                 print('\t'.join(self.message), end='\r')
-
-            except (Exception, KeyboardInterrupt) as e:
-                for plugin in self.plugins:
-                    if plugin.on_error(self, step, e):
-                        raise
-                if self.on_error(step, e):
-                    raise
-        
-        # newline for message
-        print()
+        finally:
+            # newline for message
+            print()
 
         for plugin in self.plugins:
             plugin.after_episode(self, episode)
