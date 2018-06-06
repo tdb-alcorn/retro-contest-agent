@@ -1,13 +1,10 @@
 import tensorflow as tf
 from train.regimen import Regimen
-from train.utils import random_if_empty
+from train.utils import random_choice
+from environments import all_environments
 
 
 class RL2(Regimen):
-    def before_training(self):
-        # initialise game, level
-        self.game, self.state = random_if_empty('', '', validation=False)
-
     def before_epoch(self, epoch:int):
         tf.reset_default_graph()
         self.agent = self.agent_constructor()
@@ -18,6 +15,6 @@ class RL2(Regimen):
         self.agent.load(self.sess)
     
     def after_epoch(self, epoch:int):
-        # next game, level
-        self.game, self.state = random_if_empty('', '', validation=False)
+        # next state
+        self.state = random_choice(self.env_maker.states)
         self.agent.save(self.sess)

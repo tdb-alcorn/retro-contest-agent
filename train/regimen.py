@@ -1,8 +1,9 @@
 import tensorflow as tf
-from typing import Type, Union, NamedTuple, Dict, Any
+from typing import Type, Union, NamedTuple, Dict, Any, Callable
 from contextlib import closing
 from agents import Agent
 from objective import Objective
+from environments import Maker
 from .play import KeyboardController
 from .plugin import Plugin
 from retro_contest.local import make
@@ -59,7 +60,7 @@ class Regimen(object):
         self.message.append(message)
     
     def train(self,
-        game:str,
+        env_maker:Maker,
         state:str,
         epochs:int,
         episodes_per_epoch:int,
@@ -67,7 +68,7 @@ class Regimen(object):
         bk2dir=None,
         out_filename:str='',
     ):
-        self.game = game
+        self.env_maker = env_maker
         self.state = state
 
         tf.logging.set_verbosity(tf.logging.WARN)
@@ -101,7 +102,10 @@ class Regimen(object):
     ):
         try:
             print("Playing game {} on level {}".format(self.game, self.state))
-            self.env = make(game=self.game, state=self.state, bk2dir=bk2dir)
+            if bk2dir is not None:
+                self.env = self.env_maker.make(self.state, bk2dir=bk2dir)
+            else:
+                self.env = self.env_maker.make(self.state)
 
             for plugin in self.plugins:
                 plugin.before_epoch(self, epoch)
@@ -123,7 +127,8 @@ class Regimen(object):
                 losses = self.agent.losses
                 numbered_losses = list(zip(range(len(losses)), losses))
                 self.losses.extend([(epoch, *row) for row in numbered_losses])
-            self.env.close()
+            if self.env is not None:
+                self.env.close()
     
     def run_episode(self,
         episode:int,

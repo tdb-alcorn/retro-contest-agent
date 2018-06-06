@@ -32,6 +32,8 @@ def get_levels_by_game(validation:bool=False) -> Dict[str, List[str]]:
     return levels
 
 def random_choice(lst:List):
+    if len(lst) == 0:
+        return None
     return lst[np.random.choice(len(lst))]
 
 def random_if_empty(game:str, level:str, validation:bool=False):
