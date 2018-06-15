@@ -24,3 +24,5 @@ roms
 
 # pip artifact
 src
+
+*.yaml

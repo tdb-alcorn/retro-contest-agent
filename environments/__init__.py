@@ -1,7 +1,21 @@
 from .maker import Maker
+from generate import read_objects
 
 # Dict[str, Maker]
 all_environments = dict()
+
+objects = read_objects()
+envs = objects['environments']
+
+import importlib.util
+def import_from_file(filepath:str, object_name:str, module_name:str):
+    spec = importlib.util.spec_from_file_location(module_name, filepath)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, object_name)
+
+for name, env in envs.items():
+    all_environments[name] = import_from_file(env['path'], env['main'], 'environment.' + env)
 
 
 # OpenAI Gym
