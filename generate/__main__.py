@@ -31,9 +31,12 @@ object_data = {
 }
 
 contents = '''
+from q2 import *
+
 class {}(object):
     pass
 '''
+
 with open(object_data['path'], 'w') as f:
     f.write(contents.format(object_data['main']))
 
